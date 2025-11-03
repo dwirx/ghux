@@ -146,13 +146,6 @@ export async function testSshConnection(hostAlias?: string, hostname?: string) {
 
         const out = (stdout + "\n" + stderr).trim();
 
-        // DEBUG: Log the actual output
-        console.log(`[DEBUG SSH Test] Host: ${host}`);
-        console.log(`[DEBUG SSH Test] Exit code: ${code}`);
-        console.log(`[DEBUG SSH Test] stdout: "${stdout}"`);
-        console.log(`[DEBUG SSH Test] stderr: "${stderr}"`);
-        console.log(`[DEBUG SSH Test] combined: "${out}"`);
-
         // Platform-aware success patterns
         // GitHub: "Hi username! You've successfully authenticated"
         // GitLab: "Welcome to GitLab, @username!"
@@ -162,8 +155,6 @@ export async function testSshConnection(hostAlias?: string, hostname?: string) {
             /successfully authenticated|Hi\s+.+! You've successfully authenticated|Welcome to GitLab|logged in as|authenticated via|You can use git|Hi there,/i.test(
                 out,
             );
-
-        console.log(`[DEBUG SSH Test] Pattern match result: ${ok}`);
 
         if (ok) {
             // Extract username from response (GitHub, GitLab, Gitea, Bitbucket)
