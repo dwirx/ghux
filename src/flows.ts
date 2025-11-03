@@ -1,7 +1,7 @@
 import prompts from "prompts";
 import * as fs from "fs";
 
-import type { AppConfig, Account } from "./types";
+import type { AppConfig, Account, PlatformConfig } from "./types";
 import { saveConfig } from "./config";
 import { getSshDirectory, getGitCredentialsPath } from "./utils/platform";
 import {
@@ -42,6 +42,16 @@ import {
     createSpinner,
     colors,
 } from "./utils/ui";
+import { logActivity } from "./activityLog";
+import {
+    detectPlatformFromUrl,
+    getPlatformName,
+    getPlatformIcon,
+    getPlatformSshHost,
+    buildRemoteUrl,
+    getPlatformInstructions,
+    autoDetectPlatform,
+} from "./platformDetector";
 
 export async function detectActiveAccount(
     accounts: Account[],
@@ -122,10 +132,16 @@ export async function chooseAccount(accounts: Account[]) {
             const methodsText =
                 methods.length > 0 ? ` • ${methods.join(", ")}` : "";
 
+            // Add platform info
+            const platformInfo = a.platform
+                ? ` • ${getPlatformIcon(a.platform.type)} ${getPlatformName(a.platform.type)}`
+                : "";
+
             return {
                 title: `${statusIcon} ${a.name}${statusText}`,
                 value: i,
-                description: `${a.gitEmail || a.gitUserName || "No git identity"}${methodsText}`,
+                description:
+                    `${a.gitUserName || ""} ${a.gitEmail || ""}${methodsText}${platformInfo}`.trim(),
             };
         }),
     });
@@ -135,6 +151,29 @@ export async function chooseAccount(accounts: Account[]) {
 }
 
 export async function addAccountFlow(cfg: AppConfig) {
+    // Try to detect platform from current repo
+    const cwd = process.cwd();
+    let detectedPlatform: PlatformConfig = { type: "github" };
+    let detectedPlatformName = "GitHub";
+
+    try {
+        if (await isGitRepo(cwd)) {
+            const remoteInfo = await getCurrentRemoteInfo(cwd);
+            if (remoteInfo?.platform) {
+                detectedPlatform = remoteInfo.platform;
+                detectedPlatformName = getPlatformName(detectedPlatform.type);
+                showInfo(
+                    `📡 Detected platform from current repo: ${getPlatformIcon(detectedPlatform.type)} ${detectedPlatformName}`,
+                );
+                if (detectedPlatform.domain) {
+                    showInfo(`   Domain: ${detectedPlatform.domain}`);
+                }
+            }
+        }
+    } catch {
+        // Ignore errors, use default
+    }
+
     const base = await prompts([
         {
             type: "text",
@@ -153,6 +192,34 @@ export async function addAccountFlow(cfg: AppConfig) {
             message: "Git user.email (optional)",
         },
         {
+            type: "select",
+            name: "platform",
+            message: `Git platform (detected: ${detectedPlatformName})`,
+            choices: [
+                {
+                    title: `${getPlatformIcon("github")} GitHub`,
+                    value: "github",
+                },
+                {
+                    title: `${getPlatformIcon("gitlab")} GitLab`,
+                    value: "gitlab",
+                },
+                {
+                    title: `${getPlatformIcon("bitbucket")} Bitbucket`,
+                    value: "bitbucket",
+                },
+                { title: `${getPlatformIcon("gitea")} Gitea`, value: "gitea" },
+                { title: `${getPlatformIcon("other")} Other`, value: "other" },
+            ],
+            initial: [
+                "github",
+                "gitlab",
+                "bitbucket",
+                "gitea",
+                "other",
+            ].indexOf(detectedPlatform.type),
+        },
+        {
             type: "multiselect",
             name: "methods",
             message: "Enable methods",
@@ -167,9 +234,29 @@ export async function addAccountFlow(cfg: AppConfig) {
 
     const acc: Account = {
         name: base.name,
-        gitUserName: base.gitUserName || undefined,
-        gitEmail: base.gitEmail || undefined,
+        gitUserName: base.gitUserName,
+        gitEmail: base.gitEmail,
+        platform: {
+            type: base.platform || "github",
+        },
     };
+
+    // Ask for custom domain if not GitHub
+    if (base.platform && base.platform !== "github") {
+        const suggestedDomain =
+            base.platform === detectedPlatform.type && detectedPlatform.domain
+                ? detectedPlatform.domain
+                : "";
+        const domainPrompt = await prompts({
+            type: "text",
+            name: "domain",
+            message: `Custom domain for ${getPlatformName(base.platform)} (optional, e.g., gitlab.company.com)`,
+            initial: suggestedDomain,
+        });
+        if (domainPrompt.domain) {
+            acc.platform!.domain = domainPrompt.domain;
+        }
+    }
 
     if (base.methods.includes("ssh")) {
         const existingKeys = listSshPrivateKeys();
@@ -242,6 +329,24 @@ export async function addAccountFlow(cfg: AppConfig) {
 
     cfg.accounts.push(acc);
     saveConfig(cfg);
+    showSuccess(`Account updated: ${acc.name}`);
+
+    // Log activity
+    logActivity({
+        action: "edit",
+        accountName: acc.name,
+        platform: acc.platform?.type || "github",
+        success: true,
+    });
+
+    // Log activity
+    logActivity({
+        action: "add",
+        accountName: acc.name,
+        platform: acc.platform?.type || "github",
+        success: true,
+    });
+
     showSuccess(`Account saved: ${acc.name}`);
 }
 
@@ -257,6 +362,16 @@ export async function removeAccountFlow(cfg: AppConfig) {
     const [removed] = cfg.accounts.splice(idx, 1);
     saveConfig(cfg);
     showSuccess(`Removed account: ${removed?.name || "Unknown"}`);
+
+    // Log activity
+    if (removed) {
+        logActivity({
+            action: "remove",
+            accountName: removed.name,
+            platform: removed.platform?.type || "github",
+            success: true,
+        });
+    }
 }
 
 export async function listAccounts(cfg: AppConfig) {
@@ -360,6 +475,20 @@ export async function listAccounts(cfg: AppConfig) {
         if (methods.length > 0) {
             console.log(colors.muted(`    Methods: ${methods.join(", ")}`));
         }
+
+        // Platform Configuration
+        if (account.platform) {
+            const platformIcon = getPlatformIcon(account.platform.type);
+            const platformName = getPlatformName(account.platform.type);
+            console.log(
+                colors.muted(`  Platform: ${platformIcon} ${platformName}`),
+            );
+            if (account.platform.domain) {
+                console.log(
+                    colors.muted(`    Domain: ${account.platform.domain}`),
+                );
+            }
+        }
     });
 
     console.log();
@@ -435,9 +564,12 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
                 spinner.start();
 
                 try {
+                    const platform = acc.platform?.type || "github";
                     await generateSshKey(
                         keyPath,
-                        acc.gitEmail || acc.gitUserName || `${acc.name}@github`,
+                        acc.gitEmail ||
+                            acc.gitUserName ||
+                            `${acc.name}@${platform}`,
                     );
                     spinner.stop();
                     showSuccess(`Generated SSH key: ${keyPath}`);
@@ -450,30 +582,68 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
                 return;
             }
         }
-        // Ensure permissions and use Host github.com (no alias) for simpler usage
+
+        // Ensure permissions and configure SSH for the platform
         ensureKeyPermissions(keyPath);
-        ensureSshConfigBlock("github.com", keyPath);
-        const newUrl = `git@github.com:${repoPath}`;
+        const platformHost = getPlatformSshHost(
+            acc.platform || { type: "github" },
+        );
+        ensureSshConfigBlock(platformHost, keyPath);
+        const newUrl = buildRemoteUrl(
+            acc.platform || { type: "github" },
+            repoPath,
+            true,
+        );
         await setRemoteUrl(newUrl, "origin", cwd);
         await setLocalGitIdentity(acc.gitUserName, acc.gitEmail, cwd);
 
+        const platformName = getPlatformName(acc.platform?.type || "github");
+        const platformIcon = getPlatformIcon(acc.platform?.type || "github");
         showBox(
-            `Repository switched to SSH authentication\n\nRemote: ${newUrl}\nAccount: ${acc.name}`,
+            `Repository switched to SSH authentication\n\n${platformIcon} Platform: ${platformName}\nRemote: ${newUrl}\nAccount: ${acc.name}`,
             { title: "SSH Configuration Applied", type: "success" },
         );
+
+        // Log activity
+        logActivity({
+            action: "switch",
+            accountName: acc.name,
+            repoPath: repoPath.replace(/\.git$/, ""),
+            method: "ssh",
+            platform: acc.platform?.type || "github",
+            success: true,
+        });
+
         return;
     }
 
     if (chosen === "token" && acc.token) {
-        const httpsUrl = `https://github.com/${repoPath}`;
+        const httpsUrl = buildRemoteUrl(
+            acc.platform || { type: "github" },
+            repoPath,
+            false,
+        );
         await setRemoteUrl(httpsUrl, "origin", cwd);
         await setLocalGitIdentity(acc.gitUserName, acc.gitEmail, cwd);
         await ensureCredentialStore(acc.token.username, acc.token.token);
 
+        const platformName = getPlatformName(acc.platform?.type || "github");
+        const platformIcon = getPlatformIcon(acc.platform?.type || "github");
         showBox(
-            `Repository switched to HTTPS token authentication\n\nRemote: ${httpsUrl}\nAccount: ${acc.name}\n\nNote: Token stored in ${getGitCredentialsPath()} (plaintext)\nConsider using SSH for stronger local security.`,
+            `Repository switched to HTTPS token authentication\n\n${platformIcon} Platform: ${platformName}\nRemote: ${httpsUrl}\nAccount: ${acc.name}\n\nNote: Token stored in ${getGitCredentialsPath()} (plaintext)\nConsider using SSH for stronger local security.`,
             { title: "Token Configuration Applied", type: "success" },
         );
+
+        // Log activity
+        logActivity({
+            action: "switch",
+            accountName: acc.name,
+            repoPath: repoPath.replace(/\.git$/, ""),
+            method: "token",
+            platform: acc.platform?.type || "github",
+            success: true,
+        });
+
         return;
     }
 }
@@ -682,7 +852,9 @@ export async function importSshKeyFlow(cfg: AppConfig) {
     showInfo(`Public key: ${pub}`);
 
     if (ans.test) {
-        const spinner = createSpinner("Testing SSH connection to github.com...");
+        const spinner = createSpinner(
+            "Testing SSH connection to github.com...",
+        );
         spinner.start();
 
         try {
@@ -697,7 +869,9 @@ export async function importSshKeyFlow(cfg: AppConfig) {
                 showWarning("Make sure your SSH key is added to GitHub:");
                 showInfo("1. Copy your public key:");
                 showInfo(`   cat ${imported}.pub`);
-                showInfo("2. Add it to GitHub at: https://github.com/settings/keys");
+                showInfo(
+                    "2. Add it to GitHub at: https://github.com/settings/keys",
+                );
             }
 
             if (res.message) {
@@ -706,7 +880,8 @@ export async function importSshKeyFlow(cfg: AppConfig) {
         } catch (error) {
             spinner.stop();
             showError("✗ SSH test failed with error");
-            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsg =
+                error instanceof Error ? error.message : String(error);
             console.log(colors.error(`Error: ${errorMsg}`));
         }
     }
@@ -724,8 +899,17 @@ export async function testConnectionFlow(cfg: AppConfig) {
     if (!acc) return;
 
     const methods = [
-        ...(acc.ssh ? [{ title: `${colors.accent("🔑")} SSH`, value: "ssh" as const }] : []),
-        ...(acc.token ? [{ title: `${colors.secondary("🔐")} Token`, value: "token" as const }] : []),
+        ...(acc.ssh
+            ? [{ title: `${colors.accent("🔑")} SSH`, value: "ssh" as const }]
+            : []),
+        ...(acc.token
+            ? [
+                  {
+                      title: `${colors.secondary("🔐")} Token`,
+                      value: "token" as const,
+                  },
+              ]
+            : []),
     ];
 
     if (!methods.length) {
@@ -740,7 +924,9 @@ export async function testConnectionFlow(cfg: AppConfig) {
         choices: methods,
     });
 
-    const chosen = (methods.length === 1 ? methods[0]?.value : method) as "ssh" | "token";
+    const chosen = (methods.length === 1 ? methods[0]?.value : method) as
+        | "ssh"
+        | "token";
 
     if (chosen === "ssh" && acc.ssh) {
         // Validasi SSH key exists
@@ -764,10 +950,16 @@ export async function testConnectionFlow(cfg: AppConfig) {
                 showInfo(`Authenticated successfully to github.com`);
             } else {
                 showError("✗ SSH connection test failed!");
-                showWarning("Make sure your SSH key is added to GitHub:");
+                const platformInstructions = getPlatformInstructions(
+                    acc.platform?.type || "github",
+                    acc.platform?.domain,
+                );
+                showWarning(
+                    `Make sure your SSH key is added to ${getPlatformName(acc.platform?.type || "github")}:`,
+                );
                 showInfo("1. Copy your public key:");
                 showInfo(`   cat ${keyPath}.pub`);
-                showInfo("2. Add it to GitHub at: https://github.com/settings/keys");
+                showInfo(`2. Add it at: ${platformInstructions.sshKeyUrl}`);
             }
 
             if (res.message) {
@@ -776,31 +968,71 @@ export async function testConnectionFlow(cfg: AppConfig) {
         } catch (error) {
             spinner.stop();
             showError("✗ SSH test failed with error");
-            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsg =
+                error instanceof Error ? error.message : String(error);
             console.log(colors.error(`Error: ${errorMsg}`));
+            const platformInstructions = getPlatformInstructions(
+                acc.platform?.type || "github",
+                acc.platform?.domain,
+            );
             showInfo("\nTroubleshooting:");
-            showInfo("• Check if SSH key permissions are correct (600 for private key)");
-            showInfo("• Verify the key is added to your GitHub account");
-            showInfo("• Test manually with: ssh -T git@github.com");
+            showInfo(
+                "• Check if SSH key permissions are correct (600 for private key)",
+            );
+            showInfo(
+                `• Verify the key is added to your ${getPlatformName(acc.platform?.type || "github")} account`,
+            );
+            showInfo(`   Add at: ${platformInstructions.sshKeyUrl}`);
+            showInfo(
+                `• Test manually with: ${platformInstructions.sshTestCommand}`,
+            );
         }
     } else if (chosen === "token" && acc.token) {
         const spinner = createSpinner("Testing token authentication...");
         spinner.start();
 
         try {
-            const res = await testTokenAuth(acc.token.username, acc.token.token);
+            const res = await testTokenAuth(
+                acc.token.username,
+                acc.token.token,
+            );
             spinner.stop();
 
             if (res.ok) {
                 showSuccess("✓ Token authentication test passed!");
                 showInfo(`Successfully authenticated as ${acc.token.username}`);
+
+                // Log activity
+                logActivity({
+                    action: "test",
+                    accountName: acc.name,
+                    method: "token",
+                    platform: acc.platform?.type || "github",
+                    success: true,
+                });
             } else {
-                showError("✗ Token authentication test failed!");
+                showError("✗ Token authentication failed");
+
+                // Log activity
+                logActivity({
+                    action: "test",
+                    accountName: acc.name,
+                    method: "token",
+                    platform: acc.platform?.type || "github",
+                    success: false,
+                    error: res.message || "Token authentication failed",
+                });
                 showWarning("Please check:");
+                const platformInstructions = getPlatformInstructions(
+                    acc.platform?.type || "github",
+                    acc.platform?.domain,
+                );
                 showInfo("• Token has not expired");
                 showInfo("• Token has correct permissions (repo access)");
                 showInfo("• Username is correct");
-                showInfo("\nCreate a new token at: https://github.com/settings/tokens");
+                showInfo(
+                    `\nCreate a new token at: ${platformInstructions.tokenUrl}`,
+                );
             }
 
             if (res.message) {
@@ -809,7 +1041,8 @@ export async function testConnectionFlow(cfg: AppConfig) {
         } catch (error) {
             spinner.stop();
             showError("✗ Token test failed with error");
-            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsg =
+                error instanceof Error ? error.message : String(error);
             console.log(colors.error(`Error: ${errorMsg}`));
             showInfo("\nPossible issues:");
             showInfo("• Network connectivity problems");
@@ -856,8 +1089,12 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
     });
 
     if (doTest) {
+        const platformHost = getPlatformSshHost(
+            acc.platform || { type: "github" },
+        );
+        const platformName = getPlatformName(acc.platform?.type || "github");
         const spinner = createSpinner(
-            "Testing SSH connection to github.com...",
+            `Testing SSH connection to ${platformName} (${platformHost})...`,
         );
         spinner.start();
 
@@ -866,9 +1103,28 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
             spinner.stop();
 
             if (res.ok) {
-                showSuccess("SSH test OK");
+                showSuccess("✓ SSH authentication test passed!");
+
+                // Log activity
+                logActivity({
+                    action: "test",
+                    accountName: acc.name,
+                    method: "ssh",
+                    platform: acc.platform?.type || "github",
+                    success: true,
+                });
             } else {
                 showError("SSH test FAILED");
+
+                // Log activity
+                logActivity({
+                    action: "test",
+                    accountName: acc.name,
+                    method: "ssh",
+                    platform: acc.platform?.type || "github",
+                    success: false,
+                    error: res.message || "SSH test failed",
+                });
             }
 
             if (res.message) {
@@ -877,6 +1133,285 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
         } catch (error) {
             spinner.stop();
             showError("SSH test failed with error");
+        }
+    }
+}
+
+/**
+ * Health check flow - check all accounts
+ */
+export async function healthCheckFlow(): Promise<void> {
+    const { loadConfig } = await import("./config");
+    const cfg = loadConfig();
+
+    if (cfg.accounts.length === 0) {
+        showError("No accounts configured");
+        return;
+    }
+
+    showSection("Account Health Check");
+
+    const { checkAllAccountsHealth, getHealthSummary } = await import(
+        "./healthCheck"
+    );
+
+    const spinner = createSpinner("Checking account health...");
+    spinner.start();
+
+    try {
+        const statuses = await checkAllAccountsHealth(cfg.accounts);
+        spinner.stop();
+
+        const summary = getHealthSummary(statuses);
+
+        // Show summary
+        console.log("");
+        console.log(colors.primary("📊 Health Summary"));
+        console.log(colors.muted("─".repeat(50)));
+        console.log(`${colors.accent("Total Accounts:")} ${summary.total}`);
+        console.log(`${colors.success("✓ Healthy:")} ${summary.healthy}`);
+        console.log(`${colors.warning("⚠ Warnings:")} ${summary.warnings}`);
+        console.log(`${colors.error("✗ Errors:")} ${summary.errors}`);
+        console.log("");
+
+        // Show detailed results
+        console.log(colors.primary("📋 Detailed Results"));
+        console.log(colors.muted("─".repeat(50)));
+
+        for (const status of statuses) {
+            console.log("");
+            console.log(colors.accent(`▸ ${status.accountName}`));
+
+            if (status.sshValid !== undefined) {
+                if (status.sshValid) {
+                    console.log(`  ${colors.success("✓")} SSH: Valid`);
+                } else {
+                    console.log(
+                        `  ${colors.error("✗")} SSH: ${status.sshError || "Invalid"}`,
+                    );
+                }
+            }
+
+            if (status.tokenValid !== undefined) {
+                if (status.tokenValid) {
+                    console.log(`  ${colors.success("✓")} Token: Valid`);
+                    if (status.tokenExpiry) {
+                        const expiryDate = new Date(status.tokenExpiry);
+                        const daysUntil = Math.floor(
+                            (expiryDate.getTime() - Date.now()) /
+                                (1000 * 60 * 60 * 24),
+                        );
+                        if (daysUntil < 7 && daysUntil > 0) {
+                            console.log(
+                                `  ${colors.warning("⚠")} Token expires in ${daysUntil} days`,
+                            );
+                        } else if (daysUntil <= 0) {
+                            console.log(
+                                `  ${colors.error("✗")} Token has expired`,
+                            );
+                        }
+                    }
+                } else {
+                    console.log(
+                        `  ${colors.error("✗")} Token: ${status.tokenError || "Invalid"}`,
+                    );
+                }
+            }
+
+            const lastChecked = new Date(status.lastChecked);
+            console.log(
+                `  ${colors.muted("Last checked:")} ${lastChecked.toLocaleString()}`,
+            );
+        }
+
+        console.log("");
+
+        // Save health check results
+        cfg.healthChecks = statuses;
+        cfg.lastHealthCheck = new Date().toISOString();
+        saveConfig(cfg);
+
+        showSuccess("Health check completed");
+    } catch (e: any) {
+        spinner.stop();
+        showError(`Health check failed: ${e?.message || String(e)}`);
+    }
+}
+
+/**
+ * Activity log flow - show activity history
+ */
+export async function showActivityLogFlow(): Promise<void> {
+    const {
+        getRecentActivity,
+        getActivityStats,
+        exportToCSV,
+        clearActivityLog,
+        getLogFilePath,
+    } = await import("./activityLog");
+
+    showSection("Activity Log");
+
+    const { action } = await prompts({
+        type: "select",
+        name: "action",
+        message: stylePrompt("Choose an action"),
+        choices: [
+            {
+                title: colors.primary("📜 View recent activity"),
+                value: "recent",
+            },
+            { title: colors.accent("📊 View statistics"), value: "stats" },
+            { title: colors.secondary("📥 Export to CSV"), value: "export" },
+            { title: colors.warning("🗑️ Clear log"), value: "clear" },
+            { title: colors.muted("← Back"), value: "back" },
+        ],
+    });
+
+    if (!action || action === "back") {
+        return;
+    }
+
+    if (action === "recent") {
+        const entries = getRecentActivity(20);
+
+        if (entries.length === 0) {
+            showInfo("No activity recorded yet");
+            return;
+        }
+
+        console.log("");
+        console.log(colors.primary("📜 Recent Activity"));
+        console.log(colors.muted("─".repeat(80)));
+
+        for (const entry of entries) {
+            const timestamp = new Date(entry.timestamp).toLocaleString();
+            const statusIcon = entry.success
+                ? colors.success("✓")
+                : colors.error("✗");
+            const actionIcon =
+                {
+                    switch: "🔄",
+                    add: "➕",
+                    remove: "🗑️",
+                    edit: "✏️",
+                    test: "🧪",
+                }[entry.action] || "•";
+
+            console.log("");
+            console.log(
+                `${statusIcon} ${actionIcon} ${colors.accent(entry.action.toUpperCase())} - ${entry.accountName}`,
+            );
+            console.log(`   ${colors.muted("Time:")} ${timestamp}`);
+            if (entry.repoPath) {
+                console.log(`   ${colors.muted("Repo:")} ${entry.repoPath}`);
+            }
+            if (entry.method) {
+                console.log(
+                    `   ${colors.muted("Method:")} ${entry.method.toUpperCase()}`,
+                );
+            }
+            if (entry.platform) {
+                console.log(
+                    `   ${colors.muted("Platform:")} ${entry.platform}`,
+                );
+            }
+            if (entry.error) {
+                console.log(`   ${colors.error("Error:")} ${entry.error}`);
+            }
+        }
+
+        console.log("");
+    }
+
+    if (action === "stats") {
+        const stats = getActivityStats();
+
+        console.log("");
+        console.log(colors.primary("📊 Activity Statistics"));
+        console.log(colors.muted("─".repeat(50)));
+        console.log("");
+
+        console.log(colors.accent("Overall Stats:"));
+        console.log(`  Total Operations: ${stats.totalOperations}`);
+        console.log(
+            `  ${colors.success("✓")} Successful: ${stats.successfulOperations}`,
+        );
+        console.log(`  ${colors.error("✗")} Failed: ${stats.failedOperations}`);
+        if (stats.lastActivity) {
+            console.log(
+                `  Last Activity: ${new Date(stats.lastActivity).toLocaleString()}`,
+            );
+        }
+
+        console.log("");
+        console.log(colors.accent("Account Usage:"));
+        const sortedAccounts = Object.entries(stats.accountUsage).sort(
+            (a, b) => b[1] - a[1],
+        );
+        for (const [account, count] of sortedAccounts) {
+            console.log(`  ${account}: ${count} operations`);
+        }
+
+        if (Object.keys(stats.repoUsage).length > 0) {
+            console.log("");
+            console.log(colors.accent("Repository Usage:"));
+            const sortedRepos = Object.entries(stats.repoUsage)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            for (const [repo, count] of sortedRepos) {
+                console.log(`  ${repo}: ${count} operations`);
+            }
+        }
+
+        if (Object.keys(stats.methodUsage).length > 0) {
+            console.log("");
+            console.log(colors.accent("Method Usage:"));
+            for (const [method, count] of Object.entries(stats.methodUsage)) {
+                console.log(`  ${method.toUpperCase()}: ${count} operations`);
+            }
+        }
+
+        if (Object.keys(stats.platformUsage).length > 0) {
+            console.log("");
+            console.log(colors.accent("Platform Usage:"));
+            for (const [platform, count] of Object.entries(
+                stats.platformUsage,
+            )) {
+                console.log(`  ${platform}: ${count} operations`);
+            }
+        }
+
+        console.log("");
+    }
+
+    if (action === "export") {
+        const csv = exportToCSV();
+        const outputPath = getLogFilePath().replace(".log", ".csv");
+
+        try {
+            fs.writeFileSync(outputPath, csv, "utf8");
+            showSuccess(`Activity log exported to: ${outputPath}`);
+        } catch (e: any) {
+            showError(`Failed to export: ${e?.message || String(e)}`);
+        }
+    }
+
+    if (action === "clear") {
+        const { confirm } = await prompts({
+            type: "confirm",
+            name: "confirm",
+            message: "Are you sure you want to clear the activity log?",
+            initial: false,
+        });
+
+        if (confirm) {
+            try {
+                clearActivityLog();
+                showSuccess("Activity log cleared");
+            } catch (e: any) {
+                showError(`Failed to clear log: ${e?.message || String(e)}`);
+            }
         }
     }
 }

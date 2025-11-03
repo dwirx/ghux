@@ -2,6 +2,89 @@
 
 All notable changes to GhUx will be documented in this file.
 
+## [v1.0.1] - 2025-01-XX
+
+### 🎉 Major Feature Update
+
+Enhanced GhUx with account health monitoring, activity logging, CLI shortcuts, and multi-platform support.
+
+### ✨ New Features
+
+#### 🏥 Account Health Check
+- **Health Monitoring**: Check SSH keys and tokens validity for all accounts
+- **Expiry Detection**: Detect expiring tokens (within 7 days warning)
+- **Comprehensive Testing**: Test SSH connections and token authentication
+- **Health Summary**: Visual dashboard showing healthy, warning, and error states
+- **Automatic Caching**: Health check results saved for quick reference
+
+#### 📜 Activity Log
+- **Operation Tracking**: Log all account switches, additions, removals, and tests
+- **History View**: View recent activity with timestamps and details
+- **Statistics Dashboard**: See account usage, repository usage, method preferences
+- **CSV Export**: Export activity log to CSV for external analysis
+- **Success/Failure Tracking**: Monitor operation outcomes
+
+#### ⚡ CLI Shortcuts
+- **Direct Commands**: Run operations without interactive menu
+  - `ghux switch <account>` - Switch to specific account by name
+  - `ghux quick` - Quick switch menu with recent accounts starred
+  - `ghux status` - Show current repository status and active account
+  - `ghux list` - List all configured accounts
+  - `ghux health` - Run health check on all accounts
+  - `ghux log` - View activity log and statistics
+
+#### 🚀 Git Shortcuts (Shove Commands)
+- **ghux shove <message>**: Add all files, commit with message, confirm before push
+- **ghux shovenc**: Add all files, commit with empty message, confirm before push
+- **Confirmation**: Always asks before pushing to prevent accidents
+- **Activity Logging**: Automatically logs push operations
+
+#### 🌐 Multi-Platform Git Service Support
+- **Platform Selection**: Choose from GitHub, GitLab, Bitbucket, Gitea, or Other
+- **Custom Domains**: Support for self-hosted instances (e.g., gitlab.company.com)
+- **Platform-Specific Testing**: Tailored connection tests for each platform
+- **API Endpoints**: Custom API URLs for enterprise installations
+- **Platform Tracking**: Activity log tracks which platform was used
+
+### 🔧 Improvements
+- **Enhanced Help**: Updated help text with all new commands and examples
+- **Better UX**: Quick switch shows recently used accounts first with star indicator
+- **Detailed Status**: Repository status command shows comprehensive information
+- **Activity Integration**: All operations automatically logged for tracking
+- **Platform Awareness**: System detects and adapts to different git platforms
+
+### 📊 New Commands
+```bash
+ghux switch work          # Direct switch to account
+ghux quick                # Quick switch to recent account
+ghux status               # Show current repo status
+ghux shove "fix: bug"     # Add, commit, and push
+ghux shovenc              # Add, commit (no msg), and push
+ghux health               # Check all accounts health
+ghux log                  # View activity history
+```
+
+### 🛠️ Technical Changes
+- **New Modules**: 
+  - `src/healthCheck.ts` - Account health verification
+  - `src/activityLog.ts` - Activity tracking and statistics
+  - `src/shortcuts.ts` - CLI shortcut implementations
+- **Enhanced Types**: Added `GitPlatform`, `PlatformConfig`, `HealthStatus`, `ActivityLogEntry`
+- **Config Extension**: AppConfig now includes `activityLog`, `healthChecks`, `lastHealthCheck`
+- **Platform Integration**: All authentication methods support multiple platforms
+
+### 📚 Documentation
+- **Updated README**: New features documented with examples
+- **Command Reference**: Complete list of CLI shortcuts and their usage
+- **Help Text**: Enhanced `--help` output with all commands
+
+### 🐛 Bug Fixes
+- **Logging Consistency**: All operations now properly logged
+- **Error Handling**: Better error messages in health checks
+- **Permission Checks**: SSH key permission validation before testing
+
+---
+
 ## [v1.0.0] - 2025-01-XX
 
 ### 🎉 Initial Release

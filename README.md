@@ -136,8 +136,11 @@ sudo mv ghux /usr/local/bin/
 - 🌈 **Colorful Output** - Rich colors and gradients for better UX
 - 🎯 **Active Account Detection** - See which account is currently active
 - 🖥️ **Cross-Platform Support** - Full Windows, Linux, macOS compatibility with proper path handling
+- 🔔 **Automatic Update Notifications** - Get notified when new versions are available (checks once per day, non-blocking)
 - Generate SSH key dan Import SSH private key (auto chmod, auto `.pub`, auto alias/penamaan berdasarkan username).
 - Test koneksi: uji SSH alias dan/atau token.
+
+> 📋 **Update Notifications**: GhUx automatically checks for updates once per day and shows a notification when a new version is available. You can also manually check for updates from the main menu. See [UPDATE_CHECKER.md](UPDATE_CHECKER.md) for details.
 
 ## 🛠️ Development Setup
 

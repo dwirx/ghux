@@ -2,6 +2,8 @@ import * as os from "os";
 import * as fs from "fs";
 import { run, exec } from "./utils/shell";
 import { getGitCredentialsPath } from "./utils/platform";
+import { detectPlatformFromUrl } from "./platformDetector";
+import type { PlatformConfig } from "./types";
 
 const GIT_CREDENTIALS = getGitCredentialsPath();
 
@@ -84,17 +86,20 @@ export async function ensureCredentialStore(username: string, token: string) {
 }
 
 export async function testTokenAuth(username: string, token: string) {
-  const { stdout } = await exec([
-    "curl",
-    "-s",
-    "-o", "/dev/null",
-    "-w", "%{http_code}",
-    "-u", `${username}:${token}`,
-    "https://api.github.com/user",
-  ]);
-  const code = (stdout || "").trim();
-  const ok = code === "200";
-  return { ok, message: `HTTP ${code}` };
+    const { stdout } = await exec([
+        "curl",
+        "-s",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "-u",
+        `${username}:${token}`,
+        "https://api.github.com/user",
+    ]);
+    const code = (stdout || "").trim();
+    const ok = code === "200";
+    return { ok, message: `HTTP ${code}` };
 }
 
 export async function getCurrentGitUser(cwd = process.cwd()) {
@@ -111,11 +116,17 @@ export async function getCurrentRemoteInfo(cwd = process.cwd()) {
     try {
         const remoteUrl = await getRemoteUrl("origin", cwd);
         const repoPath = parseRepoFromUrl(remoteUrl || "");
-        const isSSH = remoteUrl?.startsWith("git@") || false;
+        const isSSH =
+            remoteUrl?.startsWith("git@") ||
+            remoteUrl?.startsWith("ssh://") ||
+            false;
+        const platform = detectPlatformFromUrl(remoteUrl);
+
         return {
             remoteUrl,
             repoPath: repoPath?.replace(/\.git$/, ""),
             authType: isSSH ? "ssh" : "https",
+            platform,
         };
     } catch {
         return null;
