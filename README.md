@@ -1,4 +1,4 @@
-# 🎯 GhUp - Beautiful GitHub Account Switcher
+# 🎯 GhUx - Beautiful GitHub Account Switcher
 
 <## 🚀 Quick Start
 
@@ -6,13 +6,13 @@
 
 ```bash
 # Start interactive mode
-ghup
+ghux
 
 # Check version
-ghup --version
+ghux --version
 
 # Get help
-ghup --help
+ghux --help
 ```
 
 This will launch the interactive menu where you can:
@@ -24,7 +24,7 @@ This will launch the interactive menu where you can:
 
 ### First Time Setup
 
-1. Run `ghup` in your terminal
+1. Run `ghux` in your terminal
 2. Choose "➕ Add account"
 3. Enter your GitHub account details
 4. Choose authentication method (SSH or Token)
@@ -33,7 +33,7 @@ This will launch the interactive menu where you can:
 ### Switching Accounts
 
 1. Navigate to any Git repository
-2. Run `ghup`
+2. Run `ghux`
 3. Choose "🔄 Switch account for current repo"
 4. Select your desired account
 5. Done! Your repository now uses the selected account">
@@ -51,75 +51,75 @@ This will launch the interactive menu where you can:
 ### 🚀 One-line Install (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bangunx/ghup/main/install-curl.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dwirx/ghux/main/install-curl.sh | bash
 ```
 
 ### 📦 Package Managers
 
 **NPM/Yarn/PNPM**
 ```bash
-npm install -g ghup
-yarn global add ghup
-pnpm add -g ghup
+npm install -g ghux
+yarn global add ghux
+pnpm add -g ghux
 ```
 
 **Bun (Recommended)**
 ```bash
-bun install -g ghup
+bun install -g ghux
 ```
 
 > 🐚 **Shell Compatibility**: Works with bash, zsh, fish, and other POSIX-compatible shells. Automatically detects and uses the best runtime (Bun → Node.js → fallback).
 
 **Homebrew (macOS/Linux)**
 ```bash
-brew tap bangunx/ghup
-brew install ghup
+brew tap dwirx/ghux
+brew install ghux
 ```
 
 **Arch Linux (AUR)**
 ```bash
-yay -S ghup-bin
-paru -S ghup-bin
+yay -S ghux-bin
+paru -S ghux-bin
 ```
 
 **Scoop (Windows)**
 ```powershell
-scoop bucket add bangunx https://github.com/bangunx/scoop-ghup
-scoop install ghup
+scoop bucket add dwirx https://github.com/dwirx/scoop-ghux
+scoop install ghux
 ```
 
 ### 📥 Manual Download
 
-Download pre-built binaries from [GitHub Releases](https://github.com/bangunx/ghup/releases/latest):
+Download pre-built binaries from [GitHub Releases](https://github.com/dwirx/ghux/releases/latest):
 
-- **Linux x64**: `ghup`
-- **Linux ARM64**: `ghup-linux-arm64`  
-- **Windows x64**: `ghup.exe`
-- **macOS Intel**: `ghup-macos`
-- **macOS Apple Silicon**: `ghup-macos-arm64`
+- **Linux x64**: `ghux`
+- **Linux ARM64**: `ghux-linux-arm64`  
+- **Windows x64**: `ghux.exe`
+- **macOS Intel**: `ghux-macos`
+- **macOS Apple Silicon**: `ghux-macos-arm64`
 
 ```bash
 # Make executable and move to PATH
-chmod +x ghup
-sudo mv ghup /usr/local/bin/
+chmod +x ghux
+sudo mv ghux /usr/local/bin/
 ```
 
 > 📋 See [INSTALL.md](INSTALL.md) for all installation methods and troubleshooting.
 
 ### 📥 Manual Download
 
-Download pre-built binaries from [GitHub Releases](https://github.com/bangunx/ghup/releases/latest):
+Download pre-built binaries from [GitHub Releases](https://github.com/dwirx/ghux/releases/latest):
 
-- **Linux x64**: `ghup`
-- **Linux ARM64**: `ghup-linux-arm64`
-- **Windows x64**: `ghup.exe`
-- **macOS Intel**: `ghup-macos`
-- **macOS Apple Silicon**: `ghup-macos-arm64`
+- **Linux x64**: `ghux`
+- **Linux ARM64**: `ghux-linux-arm64`
+- **Windows x64**: `ghux.exe`
+- **macOS Intel**: `ghux-macos`
+- **macOS Apple Silicon**: `ghux-macos-arm64`
 
 ```bash
 # Make executable and move to PATH
-chmod +x ghup
-sudo mv ghup /usr/local/bin/
+chmod +x ghux
+sudo mv ghux /usr/local/bin/
 ```
 
 > 📋 See [INSTALL.md](INSTALL.md) for all installation methods and troubleshooting.
@@ -154,8 +154,8 @@ sudo mv ghup /usr/local/bin/
 
 ```bash
 # Clone repository
-git clone https://github.com/bangunx/ghup.git
-cd GhUp
+git clone https://github.com/dwirx/ghux.git
+cd ghux
 
 # Install dependencies
 bun install
@@ -305,8 +305,8 @@ Host github.com
 
 Contributions are welcome! Please check our [Contributing Guidelines](CONTRIBUTING.md) and feel free to:
 
-- Report bugs by opening an [issue](https://github.com/bangunx/ghup/issues)
-- Request features through [discussions](https://github.com/bangunx/ghup/discussions)
+- Report bugs by opening an [issue](https://github.com/dwirx/ghux/issues)
+- Request features through [discussions](https://github.com/dwirx/ghux/discussions)
 - Submit pull requests with improvements
 
 ## 📄 License
@@ -325,6 +325,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ by [bangunx](https://github.com/bangunx)**
 
-⭐ If you find GhUp useful, please give it a star on GitHub!
+⭐ If you find GhUx useful, please give it a star on GitHub!
 
 </div>

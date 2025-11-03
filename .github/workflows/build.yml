@@ -11,7 +11,7 @@ jobs:
   build:
     name: Build Binaries
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -31,30 +31,30 @@ jobs:
 
     - name: Build for current platform (Linux x64)
       run: |
-        echo "🔨 Building GhSwitch for Linux x64..."
+        echo "🔨 Building GhUx for Linux x64..."
         mkdir -p build
-        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghswitch ./index.ts
+        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghux ./index.ts
         echo "✅ Build completed successfully!"
 
     - name: Test binary
       run: |
         echo "🧪 Testing the built binary..."
-        chmod +x build/ghswitch
-        timeout 10s ./build/ghswitch || true
+        chmod +x build/ghux
+        timeout 10s ./build/ghux || true
         echo "✅ Binary test completed!"
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ghswitch-linux-x64-${{ github.sha }}
-        path: build/ghswitch
+        name: ghux-linux-x64-${{ github.sha }}
+        path: build/ghux
         retention-days: 7
 
   build-all-platforms:
     name: Build All Platforms (Manual)
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -69,29 +69,29 @@ jobs:
 
     - name: Build all platform binaries
       run: |
-        echo "🔨 Building GhSwitch for all platforms..."
+        echo "🔨 Building GhUx for all platforms..."
         mkdir -p build
-        
+
         # Build for Linux x64
         echo "🐧 Building for Linux x64..."
-        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghswitch ./index.ts
-        
+        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghux ./index.ts
+
         # Build for Linux ARM64
         echo "🐧 Building for Linux ARM64..."
-        bun build --compile --target=bun-linux-arm64 --minify --sourcemap --outfile build/ghswitch-linux-arm64 ./index.ts
-        
+        bun build --compile --target=bun-linux-arm64 --minify --sourcemap --outfile build/ghux-linux-arm64 ./index.ts
+
         # Build for Windows x64
         echo "🪟 Building for Windows x64..."
-        bun build --compile --target=bun-windows-x64 --minify --sourcemap --outfile build/ghswitch.exe ./index.ts
-        
+        bun build --compile --target=bun-windows-x64 --minify --sourcemap --outfile build/ghux.exe ./index.ts
+
         # Build for macOS x64
         echo "🍎 Building for macOS x64..."
-        bun build --compile --target=bun-darwin-x64 --minify --sourcemap --outfile build/ghswitch-macos ./index.ts
-        
+        bun build --compile --target=bun-darwin-x64 --minify --sourcemap --outfile build/ghux-macos ./index.ts
+
         # Build for macOS ARM64
         echo "🍎 Building for macOS ARM64..."
-        bun build --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile build/ghswitch-macos-arm64 ./index.ts
-        
+        bun build --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile build/ghux-macos-arm64 ./index.ts
+
         echo "✅ All builds completed!"
 
     - name: Generate checksums
@@ -105,7 +105,7 @@ jobs:
     - name: Upload all binaries
       uses: actions/upload-artifact@v4
       with:
-        name: ghswitch-all-platforms-${{ github.sha }}
+        name: ghux-all-platforms-${{ github.sha }}
         path: |
           build/
           checksums.txt

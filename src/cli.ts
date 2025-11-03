@@ -3,60 +3,61 @@ import { loadConfig } from "./config";
 import { addAccountFlow, listAccounts, removeAccountFlow, switchForCurrentRepo, chooseAccount, detectActiveAccount } from "./flows";
 import { generateSshKey } from "./ssh";
 import { getCurrentGitUser, getCurrentRemoteInfo, isGitRepo } from "./git";
-import { 
-  showTitle, 
-  showSection, 
-  stylePrompt, 
-  showSuccess, 
-  showError, 
+import {
+  showTitle,
+  showSection,
+  stylePrompt,
+  showSuccess,
+  showError,
   showSeparator,
   showWarning,
   showBox,
-  colors 
+  colors
 } from "./utils/ui";
 import { ensureGithubCli, manageGithubCliFlow } from "./utils/githubCli";
 import type { Account } from "./types";
 
 // Get version from package.json
-const PACKAGE_VERSION = "1.2.1";
+const PACKAGE_VERSION = "1.0.0";
 
 function showVersion() {
-  console.log(`ghup v${PACKAGE_VERSION}`);
+  console.log(`ghux v${PACKAGE_VERSION}`);
   console.log("Beautiful GitHub Account Switcher");
   console.log("Interactive CLI tool for managing multiple GitHub accounts per repository");
+  console.log("Enhanced with automatic active account detection and comprehensive connection testing");
   console.log("");
-  console.log("GitHub: https://github.com/bangunx/ghup");
-  console.log("NPM: https://www.npmjs.com/package/ghup");
+  console.log("GitHub: https://github.com/dwirx/ghux");
+  console.log("NPM: https://www.npmjs.com/package/ghux");
 }
 
 function showHelp() {
-  console.log("GhUp - GitHub Account Switcher");
+  console.log("GhUx - GitHub Account Switcher");
   console.log("");
   console.log("Usage:");
-  console.log("  ghup                 Start interactive mode");
-  console.log("  ghup --version       Show version information");
-  console.log("  ghup --help          Show this help message");
+  console.log("  ghux                 Start interactive mode");
+  console.log("  ghux --version       Show version information");
+  console.log("  ghux --help          Show this help message");
   console.log("");
   console.log("Interactive Commands:");
   console.log("  • Add account         Add a new GitHub account");
   console.log("  • Switch account      Switch account for current repository");
   console.log("  • List accounts       Show all configured accounts");
   console.log("  • Remove account      Remove an existing account");
-  console.log("  • Test connection     Test SSH/token connectivity");
+  console.log("  • Test connection     Test SSH/token connectivity (Enhanced!)");
   console.log("  • Generate SSH key    Create new SSH key for an account");
   console.log("");
   console.log("Examples:");
-  console.log("  ghup                 # Start interactive menu");
-  console.log("  npm install -g ghup  # Install globally");
+  console.log("  ghux                 # Start interactive menu");
+  console.log("  npm install -g ghux  # Install globally");
   console.log("");
-  console.log("Documentation: https://github.com/bangunx/ghup#readme");
+  console.log("Documentation: https://github.com/dwirx/ghux#readme");
 }
 
 async function showRepositoryContext(accounts: Account[]) {
   const cwd = process.cwd();
 
   if (!(await isGitRepo(cwd))) {
-    showBox(colors.muted("Run ghup inside a Git repository to see active account details."), {
+    showBox(colors.muted("Run ghux inside a Git repository to see active account details."), {
       title: "Repository Context",
       type: "info",
     });
@@ -105,86 +106,86 @@ async function showRepositoryContext(accounts: Account[]) {
 export async function main() {
   // Handle command line arguments
   const args = process.argv.slice(2);
-  
+
   if (args.includes('--version') || args.includes('-v')) {
     showVersion();
     return;
   }
-  
+
   if (args.includes('--help') || args.includes('-h')) {
     showHelp();
     return;
   }
-  
+
   // Show beautiful title
   showTitle();
 
   await ensureGithubCli({ promptInstall: false, promptLogin: false });
 
   const cfg = loadConfig();
-  
+
   while (true) {
     showSection("Main Menu");
 
     await showRepositoryContext(cfg.accounts);
-    
+
     const { action } = await prompts({
       type: "select",
       name: "action",
       message: stylePrompt("Choose an action"),
       choices: [
-        { 
-          title: colors.primary("🔄 Switch account for current repo"), 
+        {
+          title: colors.primary("🔄 Switch account for current repo"),
           value: "switch",
           description: "Change GitHub account for this repository"
         },
-        { 
-          title: colors.accent("📋 List accounts"), 
+        {
+          title: colors.accent("📋 List accounts"),
           value: "list",
           description: "View all configured accounts"
         },
-        { 
-          title: colors.success("➕ Add account"), 
+        {
+          title: colors.success("➕ Add account"),
           value: "add",
           description: "Configure a new GitHub account"
         },
-        { 
-          title: colors.secondary("✏️  Edit account"), 
+        {
+          title: colors.secondary("✏️  Edit account"),
           value: "edit",
           description: "Modify existing account settings"
         },
-        { 
-          title: colors.warning("🗑️  Remove account"), 
+        {
+          title: colors.warning("🗑️  Remove account"),
           value: "remove",
           description: "Delete an account configuration"
         },
-        { 
-          title: colors.accent("🔑 Generate SSH key"), 
+        {
+          title: colors.accent("🔑 Generate SSH key"),
           value: "genkey",
           description: "Create new SSH key for an account"
         },
-        { 
-          title: colors.secondary("📥 Import SSH private key"), 
+        {
+          title: colors.secondary("📥 Import SSH private key"),
           value: "importkey",
           description: "Import existing SSH key"
         },
-        { 
-          title: colors.primary("🌐 Switch SSH globally"), 
+        {
+          title: colors.primary("🌐 Switch SSH globally"),
           value: "globalssh",
           description: "Change global SSH configuration"
         },
-        { 
-          title: colors.accent("🧪 Test connection"), 
+        {
+          title: colors.accent("🧪 Test connection"),
           value: "test",
           description: "Verify account authentication"
         },
-        { 
-          title: colors.accent("☁ Kelola GitHub CLI"), 
+        {
+          title: colors.accent("☁ Kelola GitHub CLI"),
           value: "githubcli",
           description: "Instal, cek status, login, dan lihat panduan perintah"
         },
-        { 
-          title: colors.muted("🚪 Exit"), 
+        {
+          title: colors.muted("🚪 Exit"),
           value: "exit",
           description: "Close the application"
         },
@@ -194,13 +195,13 @@ export async function main() {
 
     if (action === "exit" || action === undefined) {
       showSeparator();
-      showSuccess("Thank you for using GhUp! 👋");
+      showSuccess("Thank you for using GhUx! 👋");
       break;
     }
-    
+
     try {
       showSeparator();
-      
+
       if (action === "switch") await switchForCurrentRepo(cfg);
       if (action === "list") await listAccounts(cfg);
       if (action === "add") await addAccountFlow(cfg);
@@ -241,7 +242,7 @@ export async function main() {
     } catch (e: any) {
       showError(`Operation failed: ${e?.message || String(e)}`);
     }
-    
+
     // Add a pause before showing menu again
     console.log();
     await prompts({

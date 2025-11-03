@@ -84,54 +84,17 @@ export async function ensureCredentialStore(username: string, token: string) {
 }
 
 export async function testTokenAuth(username: string, token: string) {
-    if (!username || !token) {
-        return { ok: false, message: "Username and token are required" };
-    }
-
-    try {
-        const { code, stdout, stderr } = await exec([
-            "curl",
-            "-s",
-            "-o",
-            "/dev/null",
-            "-w",
-            "%{http_code}",
-            "-u",
-            `${username}:${token}`,
-            "https://api.github.com/user",
-        ]);
-
-        const httpCode = (stdout || "").trim();
-        const ok = httpCode === "200";
-
-        if (ok) {
-            return {
-                ok: true,
-                message: `HTTP ${httpCode} - Authentication successful`,
-            };
-        }
-
-        // Provide detailed error messages based on HTTP status code
-        let errorMessage = `HTTP ${httpCode}`;
-        if (httpCode === "401") {
-            errorMessage +=
-                " - Invalid credentials. Check your username and token.";
-        } else if (httpCode === "403") {
-            errorMessage +=
-                " - Access forbidden. Token may lack required permissions.";
-        } else if (httpCode === "404") {
-            errorMessage += " - Not found. Check your username.";
-        } else if (httpCode === "000" || !httpCode) {
-            errorMessage = "Connection failed. Check your network connection.";
-        } else {
-            errorMessage += " - Unexpected response from GitHub API.";
-        }
-
-        return { ok: false, message: errorMessage };
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return { ok: false, message: `Token test error: ${errorMsg}` };
-    }
+  const { stdout } = await exec([
+    "curl",
+    "-s",
+    "-o", "/dev/null",
+    "-w", "%{http_code}",
+    "-u", `${username}:${token}`,
+    "https://api.github.com/user",
+  ]);
+  const code = (stdout || "").trim();
+  const ok = code === "200";
+  return { ok, message: `HTTP ${code}` };
 }
 
 export async function getCurrentGitUser(cwd = process.cwd()) {

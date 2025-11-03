@@ -119,9 +119,12 @@ export async function ensurePublicKey(privateKeyPath: string) {
     return pubPath;
 }
 
-export async function testSshConnection(hostAlias: string) {
-    if (!hostAlias) {
-        return { ok: false, message: "Host alias is required" };
+export async function testSshConnection(hostAlias?: string) {
+    // Default to github.com if no alias provided
+    const host = hostAlias || "github.com";
+
+    if (!host) {
+        return { ok: false, message: "Host is required" };
     }
 
     try {
@@ -134,7 +137,7 @@ export async function testSshConnection(hostAlias: string) {
             "ConnectTimeout=10",
             "-o",
             "BatchMode=yes",
-            `git@${hostAlias}`,
+            `git@${host}`,
         ]);
 
         const out = (stdout + "\n" + stderr).trim();

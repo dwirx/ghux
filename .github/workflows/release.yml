@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -32,29 +32,29 @@ jobs:
 
     - name: Build all platform binaries
       run: |
-        echo "🔨 Building GhUp standalone executables..."
+        echo "🔨 Building GhUx standalone executables..."
         mkdir -p build
-        
+
         # Build for Linux x64
         echo "🐧 Building for Linux x64..."
-        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghup ./index.ts
-        
+        bun build --compile --target=bun-linux-x64 --minify --sourcemap --outfile build/ghux ./index.ts
+
         # Build for Linux ARM64
         echo "🐧 Building for Linux ARM64..."
-        bun build --compile --target=bun-linux-arm64 --minify --sourcemap --outfile build/ghup-linux-arm64 ./index.ts
-        
+        bun build --compile --target=bun-linux-arm64 --minify --sourcemap --outfile build/ghux-linux-arm64 ./index.ts
+
         # Build for Windows x64
         echo "🪟 Building for Windows x64..."
-        bun build --compile --target=bun-windows-x64 --minify --sourcemap --outfile build/ghup.exe ./index.ts
-        
+        bun build --compile --target=bun-windows-x64 --minify --sourcemap --outfile build/ghux.exe ./index.ts
+
         # Build for macOS x64
         echo "🍎 Building for macOS x64..."
-        bun build --compile --target=bun-darwin-x64 --minify --sourcemap --outfile build/ghup-macos ./index.ts
-        
+        bun build --compile --target=bun-darwin-x64 --minify --sourcemap --outfile build/ghux-macos ./index.ts
+
         # Build for macOS ARM64
         echo "🍎 Building for macOS ARM64..."
-        bun build --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile build/ghup-macos-arm64 ./index.ts
-        
+        bun build --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile build/ghux-macos-arm64 ./index.ts
+
         echo "✅ All builds completed!"
 
     - name: Generate checksums
@@ -70,10 +70,10 @@ jobs:
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "tag_name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          echo "release_name=GhUp ${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          echo "release_name=GhUx ${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
         else
           echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "release_name=GhUp ${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "release_name=GhUx ${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi
 
     - name: Repository metadata
@@ -91,45 +91,45 @@ jobs:
         tag_name: ${{ steps.release_info.outputs.tag_name }}
         name: ${{ steps.release_info.outputs.release_name }}
         body: |
-          # 🎉 GhUp Release - ${{ steps.release_info.outputs.tag_name }}
-          
+          # 🎉 GhUx Release - ${{ steps.release_info.outputs.tag_name }}
+
           **Beautiful GitHub Account Switcher - Standalone Binaries**
-          
+
           ## 📦 Downloads
-          
+
           Choose the appropriate binary for your platform:
-          
+
           | Platform | Binary | Size |
           |----------|--------|------|
-          | 🐧 **Linux x64** | [`ghup`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup) | ~100MB |
-          | 🐧 **Linux ARM64** | [`ghup-linux-arm64`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup-linux-arm64) | ~93MB |
-          | 🪟 **Windows x64** | [`ghup.exe`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup.exe) | ~114MB |
-          | 🍎 **macOS Intel** | [`ghup-macos`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup-macos) | ~64MB |
-          | 🍎 **macOS Apple Silicon** | [`ghup-macos-arm64`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup-macos-arm64) | ~58MB |
-          
+          | 🐧 **Linux x64** | [`ghux`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux) | ~100MB |
+          | 🐧 **Linux ARM64** | [`ghux-linux-arm64`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux-linux-arm64) | ~93MB |
+          | 🪟 **Windows x64** | [`ghux.exe`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux.exe) | ~114MB |
+          | 🍎 **macOS Intel** | [`ghux-macos`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux-macos) | ~64MB |
+          | 🍎 **macOS Apple Silicon** | [`ghux-macos-arm64`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux-macos-arm64) | ~58MB |
+
           ## 🚀 Quick Start
-          
+
           ### One-line installation:
           ```bash
           curl -fsSL https://raw.githubusercontent.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/main/install.sh | bash
           ```
-          
+
           ### Manual installation:
           1. Download the binary for your platform
-          2. Make it executable: `chmod +x ghswitch` (Linux/macOS)
-          3. Run: `./ghswitch`
-          
+          2. Make it executable: `chmod +x ghux` (Linux/macOS)
+          3. Run: `./ghux`
+
           ### Global installation:
           ```bash
           # Linux/macOS
-          sudo cp ghswitch /usr/local/bin/
-          
+          sudo cp ghux /usr/local/bin/
+
           # Windows (as Administrator)
-          copy ghswitch.exe C:\Windows\System32\
+          copy ghux.exe C:\Windows\System32\
           ```
-          
+
           ## ✨ Features
-          
+
           - 🎨 **Beautiful terminal interface** with colors and animations
           - 🔄 **Multi-account GitHub switching** per repository
           - 🔐 **Dual authentication support**: SSH keys and Personal Access Tokens
@@ -137,48 +137,48 @@ jobs:
           - 🧪 **Connection testing** - verify GitHub connectivity
           - ⚡ **Zero dependencies** - single executable file
           - 🖥️ **Cross-platform** - works on Linux, Windows, and macOS
-          
+
           ## 📋 Usage Examples
-          
+
           ```bash
-          # Start GhUp
-          ./ghup
-          
+          # Start GhUx
+          ./ghux
+
           # Add a new GitHub account
           # Choose: ➕ Add account
-          
+
           # Switch account for current repository
           # Choose: 🔄 Switch account for current repo
-          
+
           # Test GitHub connection
           # Choose: 🧪 Test connection
-          
+
           # List all configured accounts
           # Choose: 📋 List accounts
           ```
-          
+
           ## 🔧 Verification
-          
+
           Verify the integrity of your download using checksums:
           - Download [`checksums.txt`](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/checksums.txt)
           - Run: `sha256sum -c checksums.txt`
-          
+
           ## 📚 Documentation
-          
+
           - [README.md](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/blob/main/README.md) - Complete documentation
           - [DISTRIBUTION.md](https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/blob/main/DISTRIBUTION.md) - Distribution guide
-          
+
           ---
-          
+
           **Full Changelog**: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/compare/${{ steps.release_info.outputs.tag_name }}^...${{ steps.release_info.outputs.tag_name }}
         draft: false
         prerelease: false
         files: |
-          build/ghup
-          build/ghup-linux-arm64
-          build/ghup.exe
-          build/ghup-macos
-          build/ghup-macos-arm64
+          build/ghux
+          build/ghux-linux-arm64
+          build/ghux.exe
+          build/ghux-macos
+          build/ghux-macos-arm64
           checksums.txt
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -188,8 +188,8 @@ jobs:
         echo "📦 Binaries uploaded to: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/tag/${{ steps.release_info.outputs.tag_name }}"
         echo ""
         echo "🔗 Download links:"
-        echo "- Linux x64: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup"
-        echo "- Linux ARM64: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup-linux-arm64"
-        echo "- Windows x64: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup.exe"
-        echo "- macOS Intel: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup-macos"
-        echo "- macOS Apple Silicon: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghup-macos-arm64"
+        echo "- Linux x64: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux"
+        echo "- Linux ARM64: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux-linux-arm64"
+        echo "- Windows x64: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux.exe"
+        echo "- macOS Intel: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux-macos"
+        echo "- macOS Apple Silicon: https://github.com/${{ steps.repo.outputs.owner }}/${{ steps.repo.outputs.name }}/releases/download/${{ steps.release_info.outputs.tag_name }}/ghux-macos-arm64"

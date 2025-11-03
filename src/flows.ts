@@ -682,30 +682,32 @@ export async function importSshKeyFlow(cfg: AppConfig) {
     showInfo(`Public key: ${pub}`);
 
     if (ans.test) {
-        const host = ans.makeDefault
-            ? "github.com"
-            : ans.writeAlias && ans.alias
-              ? ans.alias
-              : acc.ssh.hostAlias || "github.com";
-        const spinner = createSpinner(`Testing SSH connection to ${host}...`);
+        const spinner = createSpinner("Testing SSH connection to github.com...");
         spinner.start();
 
         try {
-            const res = await testSshConnection(host);
+            const res = await testSshConnection("github.com");
             spinner.stop();
 
             if (res.ok) {
-                showSuccess(`SSH test OK (${host})`);
+                showSuccess("✓ SSH test OK");
+                showInfo("Authenticated successfully to github.com");
             } else {
-                showError(`SSH test FAILED (${host})`);
+                showError("✗ SSH test FAILED");
+                showWarning("Make sure your SSH key is added to GitHub:");
+                showInfo("1. Copy your public key:");
+                showInfo(`   cat ${imported}.pub`);
+                showInfo("2. Add it to GitHub at: https://github.com/settings/keys");
             }
 
             if (res.message) {
-                console.log(colors.muted(res.message));
+                console.log(colors.muted(`\nDetails: ${res.message}`));
             }
         } catch (error) {
             spinner.stop();
-            showError("SSH test failed with error");
+            showError("✗ SSH test failed with error");
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.log(colors.error(`Error: ${errorMsg}`));
         }
     }
 }
@@ -722,17 +724,8 @@ export async function testConnectionFlow(cfg: AppConfig) {
     if (!acc) return;
 
     const methods = [
-        ...(acc.ssh
-            ? [{ title: `${colors.accent("🔑")} SSH`, value: "ssh" as const }]
-            : []),
-        ...(acc.token
-            ? [
-                  {
-                      title: `${colors.secondary("🔐")} Token`,
-                      value: "token" as const,
-                  },
-              ]
-            : []),
+        ...(acc.ssh ? [{ title: `${colors.accent("🔑")} SSH`, value: "ssh" as const }] : []),
+        ...(acc.token ? [{ title: `${colors.secondary("🔐")} Token`, value: "token" as const }] : []),
     ];
 
     if (!methods.length) {
@@ -747,12 +740,10 @@ export async function testConnectionFlow(cfg: AppConfig) {
         choices: methods,
     });
 
-    const chosen = (methods.length === 1 ? methods[0]?.value : method) as
-        | "ssh"
-        | "token";
+    const chosen = (methods.length === 1 ? methods[0]?.value : method) as "ssh" | "token";
 
     if (chosen === "ssh" && acc.ssh) {
-        // Validate SSH key exists
+        // Validasi SSH key exists
         const keyPath = expandHome(acc.ssh.keyPath);
         if (!fs.existsSync(keyPath)) {
             showError(`SSH key not found: ${keyPath}`);
@@ -764,22 +755,19 @@ export async function testConnectionFlow(cfg: AppConfig) {
         spinner.start();
 
         try {
-            // Use hostAlias if available, otherwise use github.com
-            const hostToTest = acc.ssh.hostAlias || "github.com";
-            const res = await testSshConnection(hostToTest);
+            // Always test to github.com directly
+            const res = await testSshConnection("github.com");
             spinner.stop();
 
             if (res.ok) {
                 showSuccess("✓ SSH connection test passed!");
-                showInfo(`Authenticated successfully to ${hostToTest}`);
+                showInfo(`Authenticated successfully to github.com`);
             } else {
                 showError("✗ SSH connection test failed!");
                 showWarning("Make sure your SSH key is added to GitHub:");
                 showInfo("1. Copy your public key:");
                 showInfo(`   cat ${keyPath}.pub`);
-                showInfo(
-                    "2. Add it to GitHub at: https://github.com/settings/keys",
-                );
+                showInfo("2. Add it to GitHub at: https://github.com/settings/keys");
             }
 
             if (res.message) {
@@ -788,13 +776,10 @@ export async function testConnectionFlow(cfg: AppConfig) {
         } catch (error) {
             spinner.stop();
             showError("✗ SSH test failed with error");
-            const errorMsg =
-                error instanceof Error ? error.message : String(error);
+            const errorMsg = error instanceof Error ? error.message : String(error);
             console.log(colors.error(`Error: ${errorMsg}`));
             showInfo("\nTroubleshooting:");
-            showInfo(
-                "• Check if SSH key permissions are correct (600 for private key)",
-            );
+            showInfo("• Check if SSH key permissions are correct (600 for private key)");
             showInfo("• Verify the key is added to your GitHub account");
             showInfo("• Test manually with: ssh -T git@github.com");
         }
@@ -803,10 +788,7 @@ export async function testConnectionFlow(cfg: AppConfig) {
         spinner.start();
 
         try {
-            const res = await testTokenAuth(
-                acc.token.username,
-                acc.token.token,
-            );
+            const res = await testTokenAuth(acc.token.username, acc.token.token);
             spinner.stop();
 
             if (res.ok) {
@@ -818,9 +800,7 @@ export async function testConnectionFlow(cfg: AppConfig) {
                 showInfo("• Token has not expired");
                 showInfo("• Token has correct permissions (repo access)");
                 showInfo("• Username is correct");
-                showInfo(
-                    "\nCreate a new token at: https://github.com/settings/tokens",
-                );
+                showInfo("\nCreate a new token at: https://github.com/settings/tokens");
             }
 
             if (res.message) {
@@ -829,8 +809,7 @@ export async function testConnectionFlow(cfg: AppConfig) {
         } catch (error) {
             spinner.stop();
             showError("✗ Token test failed with error");
-            const errorMsg =
-                error instanceof Error ? error.message : String(error);
+            const errorMsg = error instanceof Error ? error.message : String(error);
             console.log(colors.error(`Error: ${errorMsg}`));
             showInfo("\nPossible issues:");
             showInfo("• Network connectivity problems");
