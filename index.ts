@@ -8,6 +8,22 @@ const args = process.argv.slice(2);
 if (args.length > 0) {
     const command = args[0];
 
+    // Check if first argument is a URL (for git clone functionality)
+    if (
+        command &&
+        (command.startsWith("http://") ||
+            command.startsWith("https://") ||
+            command.startsWith("git@") ||
+            command.startsWith("ssh://"))
+    ) {
+        // ghux <repo-url> [target-dir]
+        const { cloneRepositoryFlow } = await import("./src/flows");
+        const repoUrl = command;
+        const targetDir = args[1]; // optional
+        await cloneRepositoryFlow(repoUrl, targetDir);
+        process.exit(0);
+    }
+
     // CLI Shortcuts
     if (command === "switch" && args.length > 1) {
         // ghux switch <account-name>

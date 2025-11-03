@@ -1491,3 +1491,211 @@ export async function showActivityLogFlow(): Promise<void> {
         }
     }
 }
+
+/**
+ * Clone a repository with account selection
+ */
+export async function cloneRepositoryFlow(
+    repoUrl: string,
+    targetDir?: string,
+): Promise<void> {
+    const { loadConfig } = await import("./config");
+    const { cloneRepository, normalizeGitUrl } = await import("./git");
+    const cfg = loadConfig();
+
+    showSection("Clone Repository");
+
+    // Validate URL
+    const normalized = normalizeGitUrl(repoUrl);
+    if (!normalized) {
+        showError(`Invalid git URL: ${repoUrl}`);
+        return;
+    }
+
+    showInfo(`Repository: ${colors.accent(normalized.url)}`);
+    showInfo(
+        `Auth Type: ${colors.secondary(normalized.isSSH ? "SSH" : "HTTPS")}`,
+    );
+
+    // If no accounts configured, clone without account setup
+    if (cfg.accounts.length === 0) {
+        showWarning("No accounts configured. Cloning without account setup...");
+
+        const { confirm } = await prompts({
+            type: "confirm",
+            name: "confirm",
+            message: stylePrompt("Proceed with clone?"),
+            initial: true,
+        });
+
+        if (!confirm) {
+            showWarning("Clone cancelled");
+            return;
+        }
+
+        try {
+            const spinner = createSpinner("Cloning repository...");
+            const clonedDir = await cloneRepository(
+                normalized.url,
+                targetDir,
+                process.cwd(),
+            );
+            spinner.stop();
+
+            if (clonedDir) {
+                showSuccess(`Repository cloned to: ${clonedDir}`);
+                showInfo(
+                    `Run ${colors.accent("ghux")} inside ${colors.accent(clonedDir)} to configure account`,
+                );
+            } else {
+                showSuccess("Repository cloned successfully");
+            }
+        } catch (e: any) {
+            showError(`Clone failed: ${e?.message || String(e)}`);
+        }
+        return;
+    }
+
+    // Ask user to select account
+    showInfo("Select an account to use for this repository:");
+    const acc = await chooseAccount(cfg.accounts);
+    if (!acc) {
+        showWarning("No account selected");
+        return;
+    }
+
+    // Determine which auth method to use
+    let useSSH = normalized.isSSH;
+    let authMethod: "ssh" | "token" | null = null;
+
+    if (acc.ssh && acc.token) {
+        // Both methods available, let user choose
+        const { method } = await prompts({
+            type: "select",
+            name: "method",
+            message: stylePrompt("Choose authentication method"),
+            choices: [
+                {
+                    title: `${colors.primary("🔑 SSH")} - Using key: ${acc.ssh.keyPath}`,
+                    value: "ssh",
+                },
+                {
+                    title: `${colors.accent("🔐 Token")} - Using username: ${acc.token.username}`,
+                    value: "token",
+                },
+            ],
+        });
+
+        if (!method) {
+            showWarning("Clone cancelled");
+            return;
+        }
+        authMethod = method;
+        useSSH = method === "ssh";
+    } else if (acc.ssh) {
+        authMethod = "ssh";
+        useSSH = true;
+    } else if (acc.token) {
+        authMethod = "token";
+        useSSH = false;
+    } else {
+        showError("Selected account has no SSH key or token configured");
+        return;
+    }
+
+    // Build the remote URL based on auth method
+    const platform = detectPlatformFromUrl(normalized.url);
+    const repoPath = parseRepoFromUrl(normalized.url);
+
+    if (!repoPath) {
+        showError("Could not parse repository path from URL");
+        return;
+    }
+
+    const cloneUrl = buildRemoteUrl(
+        platform,
+        repoPath.replace(/\.git$/, ""),
+        useSSH,
+    );
+
+    showInfo(`Clone URL: ${colors.muted(cloneUrl)}`);
+
+    const { confirm } = await prompts({
+        type: "confirm",
+        name: "confirm",
+        message: stylePrompt("Proceed with clone?"),
+        initial: true,
+    });
+
+    if (!confirm) {
+        showWarning("Clone cancelled");
+        return;
+    }
+
+    try {
+        // Setup authentication before cloning
+        if (authMethod === "ssh" && acc.ssh) {
+            const keyPath = expandHome(acc.ssh.keyPath);
+            const platformHost = getPlatformSshHost(platform);
+            await ensureSshConfigBlock(platformHost, keyPath);
+            showSuccess(`SSH configured for ${getPlatformName(platform.type)}`);
+        } else if (authMethod === "token" && acc.token) {
+            await ensureCredentialStore(acc.token.username, acc.token.token);
+            showSuccess("Token credentials configured");
+        }
+
+        // Clone the repository
+        const spinner = createSpinner("Cloning repository...");
+        const clonedDir = await cloneRepository(
+            cloneUrl,
+            targetDir,
+            process.cwd(),
+        );
+        spinner.stop();
+
+        if (clonedDir) {
+            // Set git identity in the cloned repo
+            const clonedPath = require("path").join(process.cwd(), clonedDir);
+            if (acc.gitUserName || acc.gitEmail) {
+                await setLocalGitIdentity(
+                    acc.gitUserName,
+                    acc.gitEmail,
+                    clonedPath,
+                );
+                showSuccess(
+                    `Git identity set: ${acc.gitUserName || ""} <${acc.gitEmail || ""}>`,
+                );
+            }
+
+            showSuccess(`Repository cloned to: ${colors.accent(clonedDir)}`);
+            showSuccess(
+                `Account ${colors.primary(acc.name)} configured for this repository`,
+            );
+
+            // Log activity
+            logActivity({
+                action: "switch",
+                accountName: acc.name,
+                repoPath: repoPath.replace(/\.git$/, ""),
+                method: authMethod || undefined,
+                platform: platform.type,
+                success: true,
+            });
+        } else {
+            showSuccess("Repository cloned successfully");
+        }
+    } catch (e: any) {
+        showError(`Clone failed: ${e?.message || String(e)}`);
+
+        // Log failure
+        logActivity({
+            action: "switch",
+            accountName: acc.name,
+            repoPath: repoPath?.replace(/\.git$/, "") || repoUrl,
+            method: authMethod || undefined,
+            platform: platform.type,
+            success: false,
+            error: e?.message || String(e),
+        });
+    }
+}

@@ -132,3 +132,64 @@ export async function getCurrentRemoteInfo(cwd = process.cwd()) {
         return null;
     }
 }
+
+/**
+ * Parse git URL and normalize it
+ * Supports:
+ * - https://github.com/owner/repo.git
+ * - https://github.com/owner/repo
+ * - git@github.com:owner/repo.git
+ * - git@github.com:owner/repo
+ */
+export function normalizeGitUrl(
+    url: string,
+): { url: string; isSSH: boolean } | null {
+    // Remove trailing # and whitespace
+    url = url.trim().replace(/#$/, "");
+
+    // SSH format: git@host:path or ssh://git@host/path
+    if (url.startsWith("git@") || url.startsWith("ssh://")) {
+        // Ensure .git suffix
+        const normalized = url.endsWith(".git") ? url : `${url}.git`;
+        return { url: normalized, isSSH: true };
+    }
+
+    // HTTPS format
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        // Ensure .git suffix
+        const normalized = url.endsWith(".git") ? url : `${url}.git`;
+        return { url: normalized, isSSH: false };
+    }
+
+    return null;
+}
+
+/**
+ * Clone a git repository with optional account selection
+ */
+export async function cloneRepository(
+    repoUrl: string,
+    targetDir?: string,
+    cwd = process.cwd(),
+) {
+    const normalized = normalizeGitUrl(repoUrl);
+    if (!normalized) {
+        throw new Error(`Invalid git URL: ${repoUrl}`);
+    }
+
+    const args = ["git", "clone", normalized.url];
+    if (targetDir) {
+        args.push(targetDir);
+    }
+
+    await run(args, { cwd });
+
+    // Get the cloned directory name
+    const dirName =
+        targetDir ||
+        parseRepoFromUrl(normalized.url)
+            ?.split("/")
+            .pop()
+            ?.replace(/\.git$/, "");
+    return dirName;
+}

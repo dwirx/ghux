@@ -1,12 +1,17 @@
 # 🎯 GhUx - Beautiful GitHub Account Switcher
 
-<## 🚀 Quick Start
+## 🚀 Quick Start
 
 **After installation, usage is simple:**
 
 ```bash
 # Start interactive mode
 ghux
+
+# Clone repository with account selection
+ghux https://github.com/user/repo.git
+ghux git@github.com:user/repo.git
+ghux https://github.com/user/repo.git myproject
 
 # Check version
 ghux --version
@@ -130,6 +135,7 @@ sudo mv ghux /usr/local/bin/
 - 🔄 **Multi-Account Support** - Effortlessly switch between different GitHub accounts
 - 🔐 **Dual Authentication** - Support for both SSH keys and Personal Access Tokens
 - 📁 **Per-Repository Configuration** - Different accounts for different repositories
+- 📦 **Git Clone Integration** - Clone repositories directly with account selection
 - ⚡ **Zero Dependencies** - Single executable file, no runtime required
 - 🎯 **Interactive Interface** - Intuitive prompts and visual feedback
 - 🔑 **SSH Key Management** - Generate, import, and manage SSH keys
@@ -190,6 +196,56 @@ bun run build:macos     # macOS x64 & ARM64
 ```
 
 Anda akan melihat menu interaktif di terminal.
+
+## 🚀 Clone Repository with Account Selection
+
+GhUx dapat langsung clone repository dengan pemilihan account secara otomatis:
+
+```bash
+# Clone dengan HTTPS
+ghux https://github.com/user/repo.git
+
+# Clone dengan SSH
+ghux git@github.com:user/repo.git
+
+# Clone ke direktori tertentu
+ghux https://github.com/user/repo.git myproject
+
+# Mendukung berbagai format URL
+ghux https://github.com/user/repo     # Tanpa .git
+ghux git@github.com:user/repo         # SSH tanpa .git
+ghux https://github.com/user/repo#    # Dengan trailing #
+```
+
+### Cara Kerja Clone dengan Account
+
+1. **Parse URL Repository** - Mendukung format SSH dan HTTPS
+2. **Pilih Account** - Jika sudah ada account terkonfigurasi, pilih account yang akan digunakan
+3. **Pilih Auth Method** - Jika account punya SSH dan Token, pilih method yang diinginkan
+4. **Setup Authentication** - Otomatis setup SSH config atau token credentials
+5. **Clone Repository** - Clone dengan URL yang sesuai method dipilih
+6. **Set Git Identity** - Otomatis set `user.name` dan `user.email` di repo yang di-clone
+7. **Log Activity** - Catat aktivitas clone untuk tracking
+
+### Keuntungan Clone dengan GhUx
+
+- ✅ **Tidak perlu setup manual** - Auth sudah di-setup sebelum clone
+- ✅ **Git identity otomatis** - `user.name` dan `user.email` langsung ter-set
+- ✅ **Konsisten** - Gunakan account yang sama seperti project lain
+- ✅ **Multi-platform** - Mendukung GitHub, GitLab, Bitbucket, Gitea
+- ✅ **Fleksibel** - Bisa pilih SSH atau HTTPS saat clone
+
+### Clone Tanpa Account
+
+Jika belum ada account terkonfigurasi, GhUx tetap bisa clone repository seperti `git clone` biasa:
+
+```bash
+ghux https://github.com/user/repo.git
+# > No accounts configured. Cloning without account setup...
+# > Proceed with clone? (Y/n)
+```
+
+Setelah clone, Anda bisa masuk ke direktori tersebut dan jalankan `ghux` untuk mengatur account.
 
 ## Konsep Singkat
 
@@ -287,6 +343,8 @@ Host github.com
 - **Multiple Organizations**: Switch between different organization accounts
 - **Client Projects**: Use different accounts for different client repositories
 - **Open Source & Private**: Different identities for public and private projects
+- **Quick Project Setup**: Clone and setup new projects with correct account in one command
+- **Team Onboarding**: Quickly clone multiple repos with proper authentication
 
 ## 🔧 Advanced Features
 

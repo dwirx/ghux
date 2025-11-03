@@ -54,6 +54,12 @@ function showHelp() {
     console.log("  ghux --version            Show version information");
     console.log("  ghux --help               Show this help message");
     console.log("");
+    console.log("Clone Repository:");
+    console.log(
+        "  ghux <repo-url> [dir]     Clone repository with account selection",
+    );
+    console.log("                            Supports SSH and HTTPS URLs");
+    console.log("");
     console.log("CLI Shortcuts:");
     console.log("  ghux switch <account>     Switch to specific account");
     console.log(
@@ -89,12 +95,33 @@ function showHelp() {
     console.log("  • Multi-platform support  GitHub, GitLab, Bitbucket, Gitea");
     console.log("");
     console.log("Examples:");
-    console.log("  ghux                      # Start interactive menu");
-    console.log("  ghux switch work          # Switch to 'work' account");
-    console.log("  ghux quick                # Quick switch to recent account");
-    console.log("  ghux status               # Show current repo status");
-    console.log('  ghux shove "fix: bug"     # Add, commit, and push');
-    console.log("  ghux health               # Check all accounts health");
+    console.log(
+        "  ghux                                                # Start interactive menu",
+    );
+    console.log(
+        "  ghux https://github.com/user/repo.git               # Clone with HTTPS",
+    );
+    console.log(
+        "  ghux git@github.com:user/repo.git                   # Clone with SSH",
+    );
+    console.log(
+        "  ghux https://github.com/user/repo.git myproject     # Clone to 'myproject' dir",
+    );
+    console.log(
+        "  ghux switch work                                    # Switch to 'work' account",
+    );
+    console.log(
+        "  ghux quick                                          # Quick switch to recent account",
+    );
+    console.log(
+        "  ghux status                                         # Show current repo status",
+    );
+    console.log(
+        '  ghux shove "fix: bug"                               # Add, commit, and push',
+    );
+    console.log(
+        "  ghux health                                         # Check all accounts health",
+    );
     console.log("");
     console.log("Documentation: https://github.com/dwirx/ghux#readme");
 }
