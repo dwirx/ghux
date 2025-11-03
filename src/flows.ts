@@ -852,26 +852,36 @@ export async function importSshKeyFlow(cfg: AppConfig) {
     showInfo(`Public key: ${pub}`);
 
     if (ans.test) {
+        const platformHost = getPlatformSshHost(
+            acc.platform || { type: "github" },
+        );
+        const platformName = getPlatformName(acc.platform?.type || "github");
+        const platformIcon = getPlatformIcon(acc.platform?.type || "github");
+
         const spinner = createSpinner(
-            "Testing SSH connection to github.com...",
+            `Testing SSH connection to ${platformName} (${platformHost})...`,
         );
         spinner.start();
 
         try {
-            const res = await testSshConnection("github.com");
+            const res = await testSshConnection(platformHost);
             spinner.stop();
 
             if (res.ok) {
                 showSuccess("✓ SSH test OK");
-                showInfo("Authenticated successfully to github.com");
+                showInfo(`Authenticated successfully to ${platformHost}`);
             } else {
                 showError("✗ SSH test FAILED");
-                showWarning("Make sure your SSH key is added to GitHub:");
+                const platformInstructions = getPlatformInstructions(
+                    acc.platform?.type || "github",
+                    acc.platform?.domain,
+                );
+                showWarning(
+                    `Make sure your SSH key is added to ${platformName}:`,
+                );
                 showInfo("1. Copy your public key:");
                 showInfo(`   cat ${imported}.pub`);
-                showInfo(
-                    "2. Add it to GitHub at: https://github.com/settings/keys",
-                );
+                showInfo(`2. Add it at: ${platformInstructions.sshKeyUrl}`);
             }
 
             if (res.message) {
@@ -932,22 +942,38 @@ export async function testConnectionFlow(cfg: AppConfig) {
         // Validasi SSH key exists
         const keyPath = expandHome(acc.ssh.keyPath);
         if (!fs.existsSync(keyPath)) {
-            showError(`SSH key not found: ${keyPath}`);
-            showInfo("Please check your SSH key path configuration.");
+            showError(`SSH key not found at: ${keyPath}`);
+            showInfo("Generate the key first or check the path.");
             return;
         }
 
-        const spinner = createSpinner("Testing SSH connection...");
+        const platformHost = getPlatformSshHost(
+            acc.platform || { type: "github" },
+        );
+        const platformName = getPlatformName(acc.platform?.type || "github");
+        const platformIcon = getPlatformIcon(acc.platform?.type || "github");
+
+        const spinner = createSpinner(
+            `Testing SSH connection to ${platformName} (${platformHost})...`,
+        );
         spinner.start();
 
         try {
-            // Always test to github.com directly
-            const res = await testSshConnection("github.com");
+            const res = await testSshConnection(platformHost);
             spinner.stop();
 
             if (res.ok) {
                 showSuccess("✓ SSH connection test passed!");
-                showInfo(`Authenticated successfully to github.com`);
+                showInfo(`Authenticated successfully to ${platformHost}`);
+
+                // Log activity
+                logActivity({
+                    action: "test",
+                    accountName: acc.name,
+                    method: "ssh",
+                    platform: acc.platform?.type || "github",
+                    success: true,
+                });
             } else {
                 showError("✗ SSH connection test failed!");
                 const platformInstructions = getPlatformInstructions(
@@ -955,15 +981,25 @@ export async function testConnectionFlow(cfg: AppConfig) {
                     acc.platform?.domain,
                 );
                 showWarning(
-                    `Make sure your SSH key is added to ${getPlatformName(acc.platform?.type || "github")}:`,
+                    `Make sure your SSH key is added to ${platformName}:`,
                 );
                 showInfo("1. Copy your public key:");
                 showInfo(`   cat ${keyPath}.pub`);
                 showInfo(`2. Add it at: ${platformInstructions.sshKeyUrl}`);
+
+                // Log activity
+                logActivity({
+                    action: "test",
+                    accountName: acc.name,
+                    method: "ssh",
+                    platform: acc.platform?.type || "github",
+                    success: false,
+                    error: res.message || "SSH test failed",
+                });
             }
 
             if (res.message) {
-                console.log(colors.muted(`\nDetails: ${res.message}`));
+                console.log(colors.muted(res.message));
             }
         } catch (error) {
             spinner.stop();
@@ -980,7 +1016,7 @@ export async function testConnectionFlow(cfg: AppConfig) {
                 "• Check if SSH key permissions are correct (600 for private key)",
             );
             showInfo(
-                `• Verify the key is added to your ${getPlatformName(acc.platform?.type || "github")} account`,
+                `• Verify the key is added to your ${platformName} account`,
             );
             showInfo(`   Add at: ${platformInstructions.sshKeyUrl}`);
             showInfo(
@@ -1059,6 +1095,12 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
     if (!acc.ssh) return console.log("Selected account has no SSH configured.");
 
     const keyPath = expandHome(acc.ssh.keyPath);
+
+    // Get platform-specific host
+    const platformHost = getPlatformSshHost(acc.platform || { type: "github" });
+    const platformName = getPlatformName(acc.platform?.type || "github");
+    const platformIcon = getPlatformIcon(acc.platform?.type || "github");
+
     if (!fs.existsSync(keyPath)) {
         const { gen } = await prompts({
             type: "confirm",
@@ -1066,9 +1108,10 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
             message: `SSH key not found at ${keyPath}. Generate now?`,
         });
         if (gen) {
+            const platform = acc.platform?.type || "github";
             await generateSshKey(
                 keyPath,
-                acc.gitEmail || acc.gitUserName || `${acc.name}@github`,
+                acc.gitEmail || acc.gitUserName || `${acc.name}@${platform}`,
             );
         } else {
             console.log("Aborted.");
@@ -1076,10 +1119,12 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
         }
     }
 
-    // Ensure strict permissions and set global host to always use this key for github.com
+    // Ensure strict permissions and set global host to always use this key
     ensureKeyPermissions(keyPath);
-    ensureSshConfigBlock("github.com", keyPath);
-    showSuccess(`Updated ~/.ssh/config → Host github.com using: ${keyPath}`);
+    ensureSshConfigBlock(platformHost, keyPath);
+    showSuccess(
+        `Updated ~/.ssh/config → Host ${platformIcon} ${platformName} (${platformHost}) using: ${keyPath}`,
+    );
 
     const { doTest } = await prompts({
         type: "confirm",
@@ -1089,21 +1134,18 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
     });
 
     if (doTest) {
-        const platformHost = getPlatformSshHost(
-            acc.platform || { type: "github" },
-        );
-        const platformName = getPlatformName(acc.platform?.type || "github");
         const spinner = createSpinner(
             `Testing SSH connection to ${platformName} (${platformHost})...`,
         );
         spinner.start();
 
         try {
-            const res = await testSshConnection("github.com");
+            const res = await testSshConnection(platformHost);
             spinner.stop();
 
             if (res.ok) {
                 showSuccess("✓ SSH authentication test passed!");
+                showInfo(`Authenticated successfully to ${platformHost}`);
 
                 // Log activity
                 logActivity({
@@ -1114,7 +1156,17 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
                     success: true,
                 });
             } else {
-                showError("SSH test FAILED");
+                showError("✗ SSH connection test failed!");
+                const platformInstructions = getPlatformInstructions(
+                    acc.platform?.type || "github",
+                    acc.platform?.domain,
+                );
+                showWarning(
+                    `Make sure your SSH key is added to ${platformName}:`,
+                );
+                showInfo("1. Copy your public key:");
+                showInfo(`   cat ${keyPath}.pub`);
+                showInfo(`2. Add it at: ${platformInstructions.sshKeyUrl}`);
 
                 // Log activity
                 logActivity({
@@ -1132,7 +1184,25 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
             }
         } catch (error) {
             spinner.stop();
-            showError("SSH test failed with error");
+            showError("✗ SSH test failed with error");
+            const errorMsg =
+                error instanceof Error ? error.message : String(error);
+            console.log(colors.error(`Error: ${errorMsg}`));
+            const platformInstructions = getPlatformInstructions(
+                acc.platform?.type || "github",
+                acc.platform?.domain,
+            );
+            showInfo("\nTroubleshooting:");
+            showInfo(
+                "• Check if SSH key permissions are correct (600 for private key)",
+            );
+            showInfo(
+                `• Verify the key is added to your ${platformName} account`,
+            );
+            showInfo(`   Add at: ${platformInstructions.sshKeyUrl}`);
+            showInfo(
+                `• Test manually with: ${platformInstructions.sshTestCommand}`,
+            );
         }
     }
 }
