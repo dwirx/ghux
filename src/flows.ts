@@ -588,7 +588,7 @@ export async function switchForCurrentRepo(cfg: AppConfig) {
         const platformHost = getPlatformSshHost(
             acc.platform || { type: "github" },
         );
-        ensureSshConfigBlock(platformHost, keyPath);
+        ensureSshConfigBlock(platformHost, keyPath, platformHost);
         const newUrl = buildRemoteUrl(
             acc.platform || { type: "github" },
             repoPath,
@@ -840,11 +840,17 @@ export async function importSshKeyFlow(cfg: AppConfig) {
         hostAlias: ans.alias || `github-${ans.username || acc.name}`,
     };
     if (ans.makeDefault) {
-        ensureSshConfigBlock("github.com", acc.ssh.keyPath);
-        showSuccess("Set as default Host github.com");
+        const platformHost = getPlatformSshHost(
+            acc.platform || { type: "github" },
+        );
+        ensureSshConfigBlock(platformHost, acc.ssh.keyPath, platformHost);
+        showSuccess(`Set as default Host ${platformHost}`);
     }
     if (ans.writeAlias && ans.alias) {
-        ensureSshConfigBlock(acc.ssh.hostAlias!, acc.ssh.keyPath);
+        const platformHost = getPlatformSshHost(
+            acc.platform || { type: "github" },
+        );
+        ensureSshConfigBlock(acc.ssh.hostAlias!, acc.ssh.keyPath, platformHost);
         showSuccess(`Alias Host added: ${acc.ssh.hostAlias}`);
     }
     saveConfig(cfg);
@@ -864,7 +870,7 @@ export async function importSshKeyFlow(cfg: AppConfig) {
         spinner.start();
 
         try {
-            const res = await testSshConnection(platformHost);
+            const res = await testSshConnection(undefined, platformHost);
             spinner.stop();
 
             if (res.ok) {
@@ -959,7 +965,7 @@ export async function testConnectionFlow(cfg: AppConfig) {
         spinner.start();
 
         try {
-            const res = await testSshConnection(platformHost);
+            const res = await testSshConnection(undefined, platformHost);
             spinner.stop();
 
             if (res.ok) {
@@ -1121,7 +1127,7 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
 
     // Ensure strict permissions and set global host to always use this key
     ensureKeyPermissions(keyPath);
-    ensureSshConfigBlock(platformHost, keyPath);
+    ensureSshConfigBlock(platformHost, keyPath, platformHost);
     showSuccess(
         `Updated ~/.ssh/config → Host ${platformIcon} ${platformName} (${platformHost}) using: ${keyPath}`,
     );
@@ -1140,7 +1146,7 @@ export async function switchGlobalSshFlow(cfg: AppConfig) {
         spinner.start();
 
         try {
-            const res = await testSshConnection(platformHost);
+            const res = await testSshConnection(undefined, platformHost);
             spinner.stop();
 
             if (res.ok) {

@@ -12,7 +12,11 @@ import {
 export const SSH_DIR = getSshDirectory();
 export const SSH_CONFIG_PATH = path.join(SSH_DIR, "config");
 
-export function ensureSshConfigBlock(alias: string, keyPath: string) {
+export function ensureSshConfigBlock(
+    alias: string,
+    keyPath: string,
+    hostname: string = "github.com",
+) {
     fs.mkdirSync(SSH_DIR, { recursive: true });
 
     // Set SSH directory permissions (Unix only)
@@ -31,7 +35,7 @@ export function ensureSshConfigBlock(alias: string, keyPath: string) {
     const header = `Host ${alias}`;
     const block = [
         `Host ${alias}`,
-        `  HostName github.com`,
+        `  HostName ${hostname}`,
         `  User git`,
         `  IdentityFile ${keyPath}`,
         `  IdentitiesOnly yes`,
@@ -119,9 +123,9 @@ export async function ensurePublicKey(privateKeyPath: string) {
     return pubPath;
 }
 
-export async function testSshConnection(hostAlias?: string) {
-    // Default to github.com if no alias provided
-    const host = hostAlias || "github.com";
+export async function testSshConnection(hostAlias?: string, hostname?: string) {
+    // Default to github.com if no hostname provided
+    const host = hostname || hostAlias || "github.com";
 
     if (!host) {
         return { ok: false, message: "Host is required" };
@@ -141,15 +145,21 @@ export async function testSshConnection(hostAlias?: string) {
         ]);
 
         const out = (stdout + "\n" + stderr).trim();
+
+        // Platform-aware success patterns
         const ok =
-            /successfully authenticated|Hi\s+.+! You've successfully authenticated/.test(
+            /successfully authenticated|Hi\s+.+! You've successfully authenticated|Welcome to GitLab|logged in as|successful/i.test(
                 out,
             );
 
         if (ok) {
-            // Extract username from GitHub's response
-            const userMatch = out.match(/Hi\s+([^!]+)!/);
-            const username = userMatch ? userMatch[1] : "user";
+            // Extract username from response (GitHub, GitLab, etc)
+            const userMatch = out.match(
+                /Hi\s+([^!]+)!|logged in as\s+(\S+)|@(\S+)/,
+            );
+            const username = userMatch
+                ? userMatch[1] || userMatch[2] || userMatch[3] || "user"
+                : "user";
             return {
                 ok: true,
                 message: `Successfully authenticated as ${username}`,
@@ -161,7 +171,7 @@ export async function testSshConnection(hostAlias?: string) {
             return {
                 ok: false,
                 message:
-                    "Connection failed. Check if SSH key is added to GitHub.",
+                    "Connection failed. Check if SSH key is added to the Git service.",
             };
         }
 
