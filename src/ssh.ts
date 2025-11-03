@@ -147,18 +147,26 @@ export async function testSshConnection(hostAlias?: string, hostname?: string) {
         const out = (stdout + "\n" + stderr).trim();
 
         // Platform-aware success patterns
+        // GitHub: "Hi username! You've successfully authenticated"
+        // GitLab: "Welcome to GitLab, @username!"
+        // Bitbucket: "authenticated via ssh key" or "You can use git"
+        // Gitea: "Hi there, username!" or "successfully authenticated"
         const ok =
-            /successfully authenticated|Hi\s+.+! You've successfully authenticated|Welcome to GitLab|logged in as|successful/i.test(
+            /successfully authenticated|Hi\s+.+! You've successfully authenticated|Welcome to GitLab|logged in as|authenticated via|You can use git|Hi there,/i.test(
                 out,
             );
 
         if (ok) {
-            // Extract username from response (GitHub, GitLab, etc)
+            // Extract username from response (GitHub, GitLab, Gitea, Bitbucket)
             const userMatch = out.match(
-                /Hi\s+([^!]+)!|logged in as\s+(\S+)|@(\S+)/,
+                /Hi\s+([^!,]+)[!,]|logged in as\s+(\S+)|@(\S+)|Hi there,?\s+([^!]+)!/i,
             );
             const username = userMatch
-                ? userMatch[1] || userMatch[2] || userMatch[3] || "user"
+                ? userMatch[1] ||
+                  userMatch[2] ||
+                  userMatch[3] ||
+                  userMatch[4] ||
+                  "user"
                 : "user";
             return {
                 ok: true,

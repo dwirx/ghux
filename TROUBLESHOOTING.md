@@ -81,7 +81,13 @@ Expected output: `Welcome to GitLab, @username!`
 ```bash
 ssh -T git@bitbucket.org
 ```
-Expected output: `authenticated via ssh key...`
+Expected output: `authenticated via ssh key. You can use git to connect to Bitbucket. Shell access is disabled`
+
+**For Gitea:**
+```bash
+ssh -T git@gitea.com
+```
+Expected output: `Hi there, username! You've successfully authenticated...` or similar
 
 **For Custom Domain:**
 ```bash
@@ -138,6 +144,12 @@ Look for lines like:
 - `debug1: Offering public key:` - SSH is trying your key
 - `debug1: Authentication succeeded` - Key accepted
 - `Permission denied (publickey)` - Key not accepted/not added to platform
+
+**Platform-specific success messages:**
+- **GitHub:** `Hi username! You've successfully authenticated`
+- **GitLab:** `Welcome to GitLab, @username!`
+- **Bitbucket:** `authenticated via ssh key. You can use git to connect to Bitbucket`
+- **Gitea:** `Hi there, username!` or `successfully authenticated`
 
 #### 7. Common Issues
 
