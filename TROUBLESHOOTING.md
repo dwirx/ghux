@@ -145,12 +145,6 @@ Look for lines like:
 - `debug1: Authentication succeeded` - Key accepted
 - `Permission denied (publickey)` - Key not accepted/not added to platform
 
-**Platform-specific success messages:**
-- **GitHub:** `Hi username! You've successfully authenticated`
-- **GitLab:** `Welcome to GitLab, @username!`
-- **Bitbucket:** `authenticated via ssh key. You can use git to connect to Bitbucket`
-- **Gitea:** `Hi there, username!` or `successfully authenticated`
-
 #### 7. Common Issues
 
 **"Permission denied (publickey)"**
