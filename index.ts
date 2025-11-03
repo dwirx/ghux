@@ -8,6 +8,153 @@ const args = process.argv.slice(2);
 if (args.length > 0) {
     const command = args[0];
 
+    // Download commands
+    if (command === "dl" || command === "get" || command === "fetch-file") {
+        const {
+            downloadSingleFile,
+            downloadMultipleFiles,
+            downloadFromFileList,
+        } = await import("./src/download");
+
+        // Parse options
+        const options: any = {};
+        let urls: string[] = [];
+
+        for (let i = 1; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg) continue;
+
+            if (arg === "-o" || arg === "--output") {
+                options.output = args[++i];
+            } else if (arg === "-O") {
+                options.output = null; // keep original name
+            } else if (arg === "-d" || arg === "--dir") {
+                options.outputDir = args[++i];
+            } else if (arg === "--preserve-path") {
+                options.preservePath = true;
+            } else if (arg === "-f" || arg === "--file-list") {
+                const fileList = args[++i];
+                if (fileList) {
+                    await downloadFromFileList(fileList, options);
+                    process.exit(0);
+                }
+            } else if (arg === "--pattern" || arg === "--glob") {
+                options.pattern = args[++i];
+            } else if (arg === "--exclude") {
+                options.exclude = args[++i];
+            } else if (arg === "--branch" || arg === "-b") {
+                options.branch = args[++i];
+            } else if (arg === "--tag" || arg === "-t") {
+                options.tag = args[++i];
+            } else if (arg === "--commit" || arg === "-c") {
+                options.commit = args[++i];
+            } else if (arg === "--info") {
+                options.showInfo = true;
+            } else if (arg === "--progress") {
+                options.showProgress = true;
+            } else if (arg === "--overwrite") {
+                options.overwrite = true;
+            } else if (!arg.startsWith("-")) {
+                urls.push(arg);
+            }
+        }
+
+        if (urls.length === 0) {
+            console.error("Error: No URL specified");
+            console.log("Usage: ghux dl <url> [options]");
+            process.exit(1);
+        }
+
+        // Download files
+        if (urls.length === 1 && urls[0]) {
+            await downloadSingleFile(urls[0], options);
+        } else {
+            await downloadMultipleFiles(urls, options);
+        }
+
+        process.exit(0);
+    }
+
+    if (command === "dl-dir") {
+        const { downloadDirectory, downloadWithPattern } = await import(
+            "./src/download"
+        );
+
+        const options: any = {};
+        let url = "";
+
+        for (let i = 1; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg) continue;
+
+            if (arg === "-d" || arg === "--dir") {
+                options.outputDir = args[++i];
+            } else if (arg === "--depth") {
+                const depthArg = args[++i];
+                if (depthArg) {
+                    options.depth = parseInt(depthArg, 10);
+                }
+            } else if (arg === "--branch" || arg === "-b") {
+                options.branch = args[++i];
+            } else if (arg === "--pattern") {
+                options.pattern = args[++i];
+            } else if (arg === "--exclude") {
+                options.exclude = args[++i];
+            } else if (arg === "--overwrite") {
+                options.overwrite = true;
+            } else if (!arg.startsWith("-")) {
+                url = arg;
+            }
+        }
+
+        if (!url) {
+            console.error("Error: No URL specified");
+            console.log("Usage: ghux dl-dir <url> [options]");
+            process.exit(1);
+        }
+
+        if (options.pattern) {
+            await downloadWithPattern(url, options.pattern, options);
+        } else {
+            await downloadDirectory(url, options);
+        }
+
+        process.exit(0);
+    }
+
+    if (command === "dl-release") {
+        const { downloadRelease } = await import("./src/download");
+
+        const options: any = {};
+        let url = "";
+
+        for (let i = 1; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg) continue;
+
+            if (arg === "--asset") {
+                options.asset = args[++i];
+            } else if (arg === "--version" || arg === "-v") {
+                options.version = args[++i];
+            } else if (arg === "-d" || arg === "--dir") {
+                options.outputDir = args[++i];
+            } else if (arg === "--overwrite") {
+                options.overwrite = true;
+            } else if (!arg.startsWith("-")) {
+                url = arg;
+            }
+        }
+
+        if (!url) {
+            console.error("Error: No URL specified");
+            console.log("Usage: ghux dl-release <repo-url> [options]");
+            process.exit(1);
+        }
+
+        await downloadRelease(url, options);
+        process.exit(0);
+    }
+
     // Check if first argument is a URL (for git clone functionality)
     if (
         command &&

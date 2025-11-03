@@ -2,6 +2,130 @@
 
 All notable changes to GhUx will be documented in this file.
 
+## [v1.0.5] - 2025-01-XX
+
+### 🎉 Major Feature: File Download from Git Repositories
+
+Added comprehensive file download capabilities directly from GitHub, GitLab, and Bitbucket repositories.
+
+### ✨ New Features
+
+#### 📥 Single File Download
+- **Download Single File**: Download any file from a repository with simple commands
+- **Multiple URL Formats**: Support for blob, raw, and short URL formats
+- **Custom Output**: Rename files on download with `-o` or `--output`
+- **Directory Selection**: Download to specific directory with `-d` or `--dir`
+- **Branch/Tag/Commit**: Specify exact version to download from
+- **File Info**: Preview file details before downloading with `--info`
+- **Progress Tracking**: Visual progress bar during downloads
+
+#### 📂 Multiple Files Download
+- **Batch Download**: Download multiple files at once
+- **File List Support**: Download from a list of URLs in a text file
+- **Pattern Matching**: Download files matching glob patterns (e.g., `*.md`, `src/**/*.ts`)
+- **Exclude Patterns**: Skip files matching specific patterns
+- **Concurrent Downloads**: Parallel downloads for better performance
+
+#### 🗂️ Directory Download
+- **Entire Directory**: Download complete directory structures
+- **Preserve Path**: Maintain repository folder structure locally
+- **Depth Control**: Limit directory traversal depth
+- **Smart Filtering**: Combine with pattern matching for selective downloads
+
+#### 🏷️ Release Downloads
+- **Latest Release**: Download assets from the latest GitHub release
+- **Version Selection**: Download from specific release version
+- **Asset Filtering**: Select specific assets by name
+- **Interactive Selection**: Multi-select interface for choosing assets
+
+#### 🌐 Smart URL Parsing
+- **GitHub URLs**: Full support for github.com and raw.githubusercontent.com
+- **GitLab URLs**: Support for gitlab.com and self-hosted GitLab instances
+- **Bitbucket URLs**: Full Bitbucket support
+- **Short Format**: Quick syntax like `user/repo/file.md` (assumes GitHub/main)
+- **Branch Notation**: Short syntax with branch: `user/repo:develop/file.md`
+
+### 🔧 New Commands
+
+```bash
+# Single file download
+ghux dl <url>                           # Download file
+ghux get <url>                          # Alias for dl
+ghux fetch-file <url>                   # Alias for dl
+
+# Download with options
+ghux dl <url> -o custom.txt             # Custom filename
+ghux dl <url> -d ~/Downloads/           # Custom directory
+ghux dl <url> --branch develop          # From specific branch
+ghux dl <url> --info                    # Show info first
+
+# Multiple files
+ghux dl <url1> <url2> <url3>            # Multiple URLs
+ghux dl -f filelist.txt                 # From file list
+
+# Directory download
+ghux dl-dir <url>                       # Download directory
+ghux dl-dir <url> --depth 2             # Limit depth
+ghux dl-dir <url> --pattern "*.md"      # With pattern
+
+# Pattern download
+ghux dl <repo-url> --pattern "*.js"     # All JS files
+ghux dl <repo-url> --pattern "src/**/*" --exclude "test/*"
+
+# Release download
+ghux dl-release github.com/user/repo    # Latest release
+ghux dl-release <repo> --version v1.0.0 # Specific version
+ghux dl-release <repo> --asset binary   # Filter by name
+```
+
+### 📋 Download Options
+
+- `-o, --output <name>` - Custom output filename
+- `-O` - Keep original filename
+- `-d, --dir <path>` - Output directory
+- `--preserve-path` - Preserve repository path structure
+- `-f, --file-list <path>` - Download from file list
+- `--pattern <glob>` - Download files matching pattern
+- `--exclude <glob>` - Exclude files matching pattern
+- `-b, --branch <name>` - Specify branch
+- `-t, --tag <name>` - Specify tag
+- `-c, --commit <hash>` - Specify commit
+- `--info` - Show file info before download
+- `--progress` - Show progress bar
+- `--overwrite` - Overwrite existing files
+- `--depth <n>` - Maximum directory depth (default: 10)
+- `--asset <name>` - Filter release assets by name
+- `--version <tag>` - Specific release version
+
+### 🛠️ Technical Changes
+
+- **New Modules**:
+  - `src/urlParser.ts` - URL parsing for GitHub, GitLab, Bitbucket
+  - `src/download.ts` - Download flows and logic
+  - `src/utils/downloader.ts` - Download utilities with progress tracking
+- **Enhanced URL Support**: Smart parsing of various Git hosting URL formats
+- **API Integration**: Uses GitHub API for directory listings and release info
+- **Retry Logic**: Automatic retry with exponential backoff for failed downloads
+- **File System Operations**: Safe file handling with overwrite protection
+- **Concurrent Downloads**: Promise.all for parallel file downloads
+
+### 📚 Documentation
+
+- **Updated Help**: Complete download command documentation
+- **Usage Examples**: Real-world download scenarios
+- **URL Format Guide**: Supported URL formats for all platforms
+
+### 🎯 Use Cases
+
+- Download configuration files from repositories
+- Fetch documentation without cloning full repo
+- Download build artifacts from releases
+- Grab example files for quick reference
+- Download entire documentation folders
+- Batch download assets from releases
+
+---
+
 ## [v1.0.1] - 2025-01-XX
 
 ### 🎉 Major Feature Update

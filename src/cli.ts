@@ -30,7 +30,7 @@ import {
 import type { Account } from "./types";
 
 // Version constant - synced by CI/CD workflow
-const PACKAGE_VERSION = "1.0.1";
+const PACKAGE_VERSION = "1.0.5";
 
 function showVersion() {
     console.log(`ghux v${PACKAGE_VERSION}`);
@@ -59,6 +59,41 @@ function showHelp() {
         "  ghux <repo-url> [dir]     Clone repository with account selection",
     );
     console.log("                            Supports SSH and HTTPS URLs");
+    console.log("");
+    console.log("Download Files:");
+    console.log(
+        "  ghux dl <url> [options]   Download single file from repository",
+    );
+    console.log("  ghux get <url>            Alias for 'dl' command");
+    console.log("  ghux fetch-file <url>     Alias for 'dl' command");
+    console.log("");
+    console.log("Download Options:");
+    console.log("  -o, --output <name>       Custom output filename");
+    console.log("  -O                        Keep original filename");
+    console.log("  -d, --dir <path>          Output directory");
+    console.log(
+        "  --preserve-path           Preserve repository path structure",
+    );
+    console.log("  -f, --file-list <path>    Download from file list");
+    console.log("  --pattern <glob>          Download files matching pattern");
+    console.log("  --exclude <glob>          Exclude files matching pattern");
+    console.log("  -b, --branch <name>       Specify branch");
+    console.log("  -t, --tag <name>          Specify tag");
+    console.log("  -c, --commit <hash>       Specify commit");
+    console.log("  --info                    Show file info before download");
+    console.log("  --progress                Show progress bar");
+    console.log("  --overwrite               Overwrite existing files");
+    console.log("");
+    console.log("Download Directory:");
+    console.log("  ghux dl-dir <url>         Download entire directory");
+    console.log(
+        "  --depth <n>               Maximum directory depth (default: 10)",
+    );
+    console.log("");
+    console.log("Download Release:");
+    console.log("  ghux dl-release <repo>    Download from latest release");
+    console.log("  --asset <name>            Filter by asset name");
+    console.log("  --version <tag>           Specific release version");
     console.log("");
     console.log("CLI Shortcuts:");
     console.log("  ghux switch <account>     Switch to specific account");
@@ -106,6 +141,21 @@ function showHelp() {
     );
     console.log(
         "  ghux https://github.com/user/repo.git myproject     # Clone to 'myproject' dir",
+    );
+    console.log(
+        "  ghux dl https://github.com/user/repo/blob/main/README.md  # Download file",
+    );
+    console.log(
+        "  ghux dl <url> -o custom.txt                         # Download with custom name",
+    );
+    console.log(
+        "  ghux dl-dir https://github.com/user/repo/tree/main/src    # Download directory",
+    );
+    console.log(
+        '  ghux dl github.com/user/repo --pattern "*.md"       # Download all markdown files',
+    );
+    console.log(
+        "  ghux dl-release github.com/user/repo                # Download latest release",
     );
     console.log(
         "  ghux switch work                                    # Switch to 'work' account",

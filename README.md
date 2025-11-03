@@ -136,6 +136,7 @@ sudo mv ghux /usr/local/bin/
 - 🔐 **Dual Authentication** - Support for both SSH keys and Personal Access Tokens
 - 📁 **Per-Repository Configuration** - Different accounts for different repositories
 - 📦 **Git Clone Integration** - Clone repositories directly with account selection
+- 📥 **File Download** - Download files and directories from repositories without cloning (NEW in v1.0.5)
 - ⚡ **Zero Dependencies** - Single executable file, no runtime required
 - 🎯 **Interactive Interface** - Intuitive prompts and visual feedback
 - 🔑 **SSH Key Management** - Generate, import, and manage SSH keys
@@ -145,6 +146,37 @@ sudo mv ghux /usr/local/bin/
 - 🔔 **Automatic Update Notifications** - Get notified when new versions are available (checks once per day, non-blocking)
 - Generate SSH key dan Import SSH private key (auto chmod, auto `.pub`, auto alias/penamaan berdasarkan username).
 - Test koneksi: uji SSH alias dan/atau token.
+
+### 📥 Download Features (v1.0.5)
+
+- **Single File Download** - Download any file from GitHub, GitLab, or Bitbucket
+- **Multiple Files** - Download multiple files at once or from a list
+- **Directory Download** - Download entire directories with structure preservation
+- **Pattern Matching** - Download files matching glob patterns (e.g., `*.md`, `src/**/*.ts`)
+- **Release Downloads** - Download assets from GitHub releases
+- **Branch/Tag/Commit** - Download from specific versions
+- **Smart URL Parsing** - Supports various URL formats and platforms
+- **Progress Tracking** - Visual progress bars and file information
+
+**Quick Examples:**
+```bash
+# Download a single file
+ghux dl https://github.com/user/repo/blob/main/README.md
+
+# Download with custom name
+ghux dl <url> -o custom-name.md
+
+# Download entire directory
+ghux dl-dir https://github.com/user/repo/tree/main/src
+
+# Download all markdown files
+ghux dl github.com/user/repo --pattern "*.md"
+
+# Download latest release
+ghux dl-release github.com/user/repo
+```
+
+📖 **See [DOWNLOAD_FEATURE.md](DOWNLOAD_FEATURE.md) for complete download documentation**
 
 > 📋 **Update Notifications**: GhUx automatically checks for updates once per day and shows a notification when a new version is available. You can also manually check for updates from the main menu. See [UPDATE_CHECKER.md](UPDATE_CHECKER.md) for details.
 
