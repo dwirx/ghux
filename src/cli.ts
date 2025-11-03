@@ -29,8 +29,8 @@ import {
 } from "./utils/updateChecker";
 import type { Account } from "./types";
 
-// Get version from package.json dynamically
-const PACKAGE_VERSION = getCurrentVersion();
+// Version constant - synced by CI/CD workflow
+const PACKAGE_VERSION = "1.0.1";
 
 function showVersion() {
     console.log(`ghux v${PACKAGE_VERSION}`);
@@ -47,7 +47,7 @@ function showVersion() {
 }
 
 function showHelp() {
-    console.log("GhUx - GitHub Account Switcher v1.0.1");
+    console.log(`GhUx - GitHub Account Switcher v${PACKAGE_VERSION}`);
     console.log("");
     console.log("Usage:");
     console.log("  ghux                      Start interactive mode");
