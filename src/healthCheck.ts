@@ -28,8 +28,39 @@ export async function checkSshKey(
         if (mode !== null && mode !== 0o600 && mode !== 0o400) {
             // On Windows, permission checking is less strict
             if (platform.isWindows) {
-                // On Windows, just warn if permissions seem too open (0o666 or 0o777)
-                if (mode === 0o666 || mode === 0o777 || mode === 0o644) {
+                // On Windows, only warn if permissions are too open (644 means not properly restricted)
+                // But don't repeatedly complain if user already tried to fix it
+                if (mode === 0o644) {
+                    // Double-check by trying to verify Windows ACLs more carefully
+                    try {
+                        const { execSync } = require("child_process");
+                        const output = execSync(`icacls "${fullPath}"`, {
+                            encoding: "utf8",
+                            stdio: ["pipe", "pipe", "ignore"],
+                        });
+
+                        // If there's NO inheritance and user has exclusive access, consider it fixed
+                        const hasNoInheritance = !output.includes("(I)");
+                        const username =
+                            process.env.USERNAME || process.env.USER || "";
+                        const hasUserAccess = output.includes(username);
+                        const hasOthers =
+                            output.includes("Everyone") ||
+                            output.includes("BUILTIN\\Users") ||
+                            output.includes(
+                                "NT AUTHORITY\\Authenticated Users",
+                            );
+
+                        // If properly restricted (no inheritance, user only), it's valid
+                        if (hasNoInheritance && hasUserAccess && !hasOthers) {
+                            // Permissions are actually OK, Windows just reports it differently
+                            return { valid: true };
+                        }
+                    } catch {
+                        // If we can't verify, assume it's OK on Windows
+                        return { valid: true };
+                    }
+
                     return {
                         valid: false,
                         error: `Permissions may be too open (${mode.toString(8)}), consider restricting access`,

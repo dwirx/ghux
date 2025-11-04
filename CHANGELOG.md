@@ -2,6 +2,33 @@
 
 All notable changes to GhUx will be documented in this file.
 
+## [v1.0.7] - 2025-01-04
+
+### 🐛 Bug Fixes - Windows Compatibility
+
+#### Fixed Download Directory Creation Error
+- **Fixed**: `ENOENT: no such file or directory, mkdir '.'` error on Windows
+- **Issue**: When downloading files without specifying output directory, the tool attempted to create the current directory (`.`) which failed on Windows
+- **Solution**: Added check in `ensureDirectory()` to skip directory creation for current directory paths (`.`, `./`, or empty string)
+
+#### Fixed SSH Key Permission Check Loop
+- **Fixed**: Health check continuously reporting SSH key permission issues on Windows even after fixing
+- **Issue**: `getWindowsFilePermissions()` function was inaccurately parsing Windows ACL output, always returning `0o644` even after proper restrictions were applied
+- **Solution**: 
+  - Improved `icacls` output parsing to correctly detect:
+    - Inheritance flags `(I)` - indicates not properly restricted
+    - Proper ACL format: `username:(F)` or `username:F`
+    - Built-in Windows groups: `BUILTIN\Users`, `Everyone`, `NT AUTHORITY\Authenticated Users`
+  - Added double-check in health check to verify if permissions are actually restricted before warning
+  - Now correctly identifies when SSH keys have proper Windows ACL restrictions (no inheritance, user-only access)
+
+### 🎯 Improvements
+- More accurate Windows file permission detection
+- Better Windows ACL verification in health checks
+- Cleaner error handling for Windows-specific path operations
+
+---
+
 ## [v1.0.6] - 2025-01-XX
 
 ### 🎉 Major Feature: Universal Download with Smart Auto-Detection

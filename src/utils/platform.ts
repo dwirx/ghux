@@ -281,7 +281,10 @@ export function getFilePermissions(filepath: string): number | null {
 function getWindowsFilePermissions(filepath: string): number {
     try {
         const { execSync } = require("child_process");
-        const output = execSync(`icacls "${filepath}"`, { encoding: "utf8" });
+        const output = execSync(`icacls "${filepath}"`, {
+            encoding: "utf8",
+            stdio: ["pipe", "pipe", "ignore"],
+        });
 
         // If only current user has access, approximate as 0o600
         // If others have read access, approximate as 0o644
@@ -290,28 +293,43 @@ function getWindowsFilePermissions(filepath: string): number {
 
         let hasUserOnly = false;
         let hasOthers = false;
+        let hasInheritance = false;
 
         for (const line of lines) {
+            const trimmed = line.trim();
+
+            // Check for inheritance - inherited permissions mean not restricted
+            if (trimmed.includes("(I)")) {
+                hasInheritance = true;
+            }
+
             if (
-                line.includes(username) &&
-                (line.includes("(F)") || line.includes("FULL"))
+                trimmed.includes(username) &&
+                (trimmed.includes(":(F)") || trimmed.includes(":F"))
             ) {
                 hasUserOnly = true;
             }
             if (
-                line.includes("Everyone") ||
-                line.includes("Users") ||
-                line.includes("Authenticated Users")
+                trimmed.includes("Everyone") ||
+                trimmed.includes("BUILTIN\\Users") ||
+                trimmed.includes("NT AUTHORITY\\Authenticated Users")
             ) {
                 hasOthers = true;
             }
         }
 
-        if (hasUserOnly && !hasOthers) {
+        // If we have inheritance or others can access, it's not restricted
+        if (hasInheritance || hasOthers) {
+            return 0o644; // Public read
+        }
+
+        // If only user has access and no inheritance, it's private
+        if (hasUserOnly) {
             return 0o600; // Private
         }
 
-        return 0o644; // Public read
+        // Default to assuming it's readable by others
+        return 0o644;
     } catch {
         // Default to assuming it's readable by others
         return 0o644;
@@ -324,6 +342,11 @@ export function ensureDirectory(
     mode: number = 0o755,
 ): boolean {
     try {
+        // Skip if it's current directory or empty
+        if (!dirPath || dirPath === "." || dirPath === "./") {
+            return true;
+        }
+
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
         }
