@@ -1302,6 +1302,56 @@ export async function healthCheckFlow(): Promise<void> {
 
         console.log("");
 
+        // Check if there are permission issues that can be fixed
+        const hasPermissionIssues = statuses.some(
+            (s) =>
+                s.sshError &&
+                (s.sshError.includes("permission") ||
+                    s.sshError.includes("Permissions")),
+        );
+
+        if (hasPermissionIssues) {
+            console.log("");
+            const { fixPermissions } = await prompts({
+                type: "confirm",
+                name: "fixPermissions",
+                message: stylePrompt(
+                    "Some SSH keys have permission issues. Fix them automatically?",
+                ),
+                initial: true,
+            });
+
+            if (fixPermissions) {
+                showSection("Fixing Permissions");
+                const fixSpinner = createSpinner(
+                    "Fixing SSH key permissions...",
+                );
+                fixSpinner.start();
+
+                let fixed = 0;
+                for (const account of cfg.accounts) {
+                    if (account.ssh?.keyPath) {
+                        try {
+                            ensureKeyPermissions(
+                                expandHome(account.ssh.keyPath),
+                            );
+                            fixed++;
+                        } catch (e: any) {
+                            console.log(
+                                `  ${colors.warning("⚠")} Failed to fix ${account.name}: ${e?.message || String(e)}`,
+                            );
+                        }
+                    }
+                }
+
+                fixSpinner.stop();
+                if (fixed > 0) {
+                    showSuccess(`Fixed permissions for ${fixed} SSH key(s)`);
+                    showInfo("Run health check again to verify the fixes");
+                }
+            }
+        }
+
         // Save health check results
         cfg.healthChecks = statuses;
         cfg.lastHealthCheck = new Date().toISOString();

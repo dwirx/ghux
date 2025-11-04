@@ -19,7 +19,6 @@ import {
     downloadMultiple,
     getFileInfo,
     formatFileSize,
-    ensureDirectory,
     getUniqueFilename,
     downloadWithRetry,
     type DownloadOptions,

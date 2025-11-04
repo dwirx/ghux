@@ -7,6 +7,7 @@ import {
     getPlatformSshSuccessPattern,
     getPlatformApiUrl,
 } from "./platformDetector";
+import { platform, getFilePermissions } from "./utils/platform";
 
 /**
  * Check if SSH key exists and has proper permissions
@@ -21,14 +22,26 @@ export async function checkSshKey(
             return { valid: false, error: "SSH key file not found" };
         }
 
-        const stats = fs.statSync(fullPath);
-        const mode = stats.mode & 0o777;
+        // Check permissions - use platform-aware function
+        const mode = getFilePermissions(fullPath);
 
-        if (mode !== 0o600 && mode !== 0o400) {
-            return {
-                valid: false,
-                error: `Incorrect permissions (${mode.toString(8)}), should be 600 or 400`,
-            };
+        if (mode !== null && mode !== 0o600 && mode !== 0o400) {
+            // On Windows, permission checking is less strict
+            if (platform.isWindows) {
+                // On Windows, just warn if permissions seem too open (0o666 or 0o777)
+                if (mode === 0o666 || mode === 0o777 || mode === 0o644) {
+                    return {
+                        valid: false,
+                        error: `Permissions may be too open (${mode.toString(8)}), consider restricting access`,
+                    };
+                }
+            } else {
+                // Unix: strict permission check
+                return {
+                    valid: false,
+                    error: `Incorrect permissions (${mode.toString(8)}), should be 600 or 400`,
+                };
+            }
         }
 
         // Check if key is readable

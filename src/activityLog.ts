@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import type { ActivityLogEntry, GitPlatform } from "./types";
-import { getConfigDirectory } from "./utils/platform";
+import { getConfigDirectory, ensureDirectory } from "./utils/platform";
 
 const LOG_DIR = getConfigDirectory("ghup");
 const LOG_FILE = path.join(LOG_DIR, "activity.log");
@@ -37,7 +37,7 @@ export function logActivity(entry: Omit<ActivityLogEntry, "timestamp">): void {
         }
 
         // Write back
-        fs.mkdirSync(LOG_DIR, { recursive: true });
+        ensureDirectory(LOG_DIR);
         fs.writeFileSync(LOG_FILE, JSON.stringify(entries, null, 2), "utf8");
     } catch (e) {
         // Silently fail - logging shouldn't break the app

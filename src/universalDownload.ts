@@ -13,6 +13,7 @@ import {
     showWarning,
     showBox,
 } from "./utils/ui";
+import { ensureDirectory } from "./utils/platform";
 
 export type UniversalDownloadOptions = {
     output?: string;
@@ -94,9 +95,7 @@ export async function downloadFromUrl(
 
         // Ensure output directory exists
         const dir = path.dirname(outputPath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
+        ensureDirectory(dir);
 
         spinner?.start(`Downloading ${colors.accent(filename)}...`);
 

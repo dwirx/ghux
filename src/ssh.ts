@@ -7,6 +7,8 @@ import {
     expandPath,
     normalizePath,
     platform,
+    setFilePermissions,
+    ensureDirectory,
 } from "./utils/platform";
 
 export const SSH_DIR = getSshDirectory();
@@ -17,14 +19,8 @@ export function ensureSshConfigBlock(
     keyPath: string,
     hostname: string = "github.com",
 ) {
-    fs.mkdirSync(SSH_DIR, { recursive: true });
-
-    // Set SSH directory permissions (Unix only)
-    try {
-        if (platform.isUnix) {
-            fs.chmodSync(SSH_DIR, 0o700);
-        }
-    } catch {}
+    // Ensure SSH directory exists with proper permissions
+    ensureDirectory(SSH_DIR, 0o700);
 
     let content = "";
     try {
@@ -71,7 +67,8 @@ export function ensureSshConfigBlock(
 
 export async function generateSshKey(keyPath: string, comment: string) {
     const dir = path.dirname(keyPath);
-    fs.mkdirSync(dir, { recursive: true });
+    ensureDirectory(dir, 0o700);
+
     await run([
         "ssh-keygen",
         "-t",
@@ -83,15 +80,16 @@ export async function generateSshKey(keyPath: string, comment: string) {
         "-N",
         "",
     ]);
-    try {
-        fs.chmodSync(keyPath, 0o600);
-    } catch {}
+
+    // Set permissions for private key
+    setFilePermissions(keyPath, 0o600);
+
+    // Set permissions for public key
     const pub = keyPath + ".pub";
     if (fs.existsSync(pub)) {
-        try {
-            fs.chmodSync(pub, 0o644);
-        } catch {}
+        setFilePermissions(pub, 0o644);
     }
+
     ensureSshDirAndConfigPermissions();
 }
 
@@ -105,9 +103,10 @@ export function importPrivateKey(srcPath: string, destPath: string) {
     const to = expandHome(destPath);
     const dir = path.dirname(to);
     if (!fs.existsSync(from)) throw new Error(`Source key not found: ${from}`);
-    fs.mkdirSync(dir, { recursive: true });
+
+    ensureDirectory(dir, 0o700);
     fs.copyFileSync(from, to);
-    fs.chmodSync(to, 0o600);
+    setFilePermissions(to, 0o600);
     ensureSshDirAndConfigPermissions();
     return to;
 }
@@ -117,9 +116,7 @@ export async function ensurePublicKey(privateKeyPath: string) {
     if (fs.existsSync(pubPath)) return pubPath;
     const pub = await run(["ssh-keygen", "-y", "-f", privateKeyPath]);
     fs.writeFileSync(pubPath, pub.trim() + "\n", "utf8");
-    try {
-        fs.chmodSync(pubPath, 0o644);
-    } catch {}
+    setFilePermissions(pubPath, 0o644);
     return pubPath;
 }
 
@@ -191,26 +188,19 @@ export async function testSshConnection(hostAlias?: string, hostname?: string) {
 }
 
 export function ensureKeyPermissions(privateKeyPath: string) {
-    try {
-        fs.chmodSync(privateKeyPath, 0o600);
-    } catch {}
+    setFilePermissions(privateKeyPath, 0o600);
     const pub = privateKeyPath + ".pub";
     if (fs.existsSync(pub)) {
-        try {
-            fs.chmodSync(pub, 0o644);
-        } catch {}
+        setFilePermissions(pub, 0o644);
     }
     ensureSshDirAndConfigPermissions();
 }
 
 export function ensureSshDirAndConfigPermissions() {
-    try {
-        fs.chmodSync(SSH_DIR, 0o700);
-    } catch {}
-    try {
-        if (fs.existsSync(SSH_CONFIG_PATH))
-            fs.chmodSync(SSH_CONFIG_PATH, 0o600);
-    } catch {}
+    setFilePermissions(SSH_DIR, 0o700);
+    if (fs.existsSync(SSH_CONFIG_PATH)) {
+        setFilePermissions(SSH_CONFIG_PATH, 0o600);
+    }
 }
 
 export function listSshPrivateKeys() {

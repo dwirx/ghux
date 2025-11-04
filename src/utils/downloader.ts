@@ -7,6 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 import ora from "ora";
 import { colors } from "./ui";
+import { ensureDirectory } from "./platform";
 
 export type DownloadOptions = {
     outputPath?: string;
@@ -70,9 +71,7 @@ export async function downloadFile(
 
         // Ensure directory exists
         const dir = path.dirname(outputPath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
+        ensureDirectory(dir);
 
         // Download file
         const arrayBuffer = await response.arrayBuffer();
@@ -202,15 +201,6 @@ export function sanitizeFilename(filename: string): string {
         .replace(/[<>:"|?*]/g, "_") // Replace invalid chars
         .replace(/\.\./g, "_") // Prevent directory traversal
         .replace(/^\./, "_"); // Prevent hidden files
-}
-
-/**
- * Create directory if it doesn't exist
- */
-export function ensureDirectory(dirPath: string): void {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
 }
 
 /**

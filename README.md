@@ -75,10 +75,21 @@ bun install -g ghux
 
 > 🐚 **Shell Compatibility**: Works with bash, zsh, fish, and other POSIX-compatible shells. Automatically detects and uses the best runtime (Bun → Node.js → fallback).
 
+> 🪟 **Windows Support**: Fully compatible with PowerShell, CMD, Git Bash, and WSL. Automatic permission handling and path normalization. See [WINDOWS_SUPPORT.md](WINDOWS_SUPPORT.md) for details.
+
+**Windows (PowerShell)**
+```powershell
+npm install -g ghux
+# Or with Bun
+bun install -g ghux
+
+# Run Windows compatibility test
+powershell -File test-windows.ps1
+```
+
 **Homebrew (macOS/Linux)**
 ```bash
 brew tap dwirx/ghux
-brew install ghux
 ```
 
 **Arch Linux (AUR)**
