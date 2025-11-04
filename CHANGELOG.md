@@ -2,15 +2,41 @@
 
 All notable changes to GhUx will be documented in this file.
 
-## [v1.0.5] - 2025-01-XX
+## [v1.0.6] - 2025-01-XX
 
-### 🎉 Major Feature: File Download from Git Repositories
+### 🎉 Major Feature: Universal Download with Smart Auto-Detection
 
-Added comprehensive file download capabilities directly from GitHub, GitLab, and Bitbucket repositories.
+Added comprehensive file download capability with ONE powerful command that does it all:
+- **`ghux dl`** - Universal downloader with SMART AUTO-DETECTION
+  - Automatically detects Git repositories (GitHub, GitLab, Bitbucket)
+  - Automatically handles regular URLs (PDFs, ISOs, installers, etc.)
+  - No need to think - just paste any URL!
+- **`ghux dlx`** - Alternative explicit command (works identically to `dl`)
 
 ### ✨ New Features
 
-#### 📥 Single File Download
+#### 🎯 Smart Auto-Detection
+- **Intelligent URL Detection**: Automatically detects if URL is a Git repository or regular file
+- **No Manual Selection**: Just use `ghux dl` for everything - it figures it out!
+- **Seamless Switching**: Git-specific options (branch, pattern) only apply to Git repos
+- **Universal Options**: Authentication headers, custom user agents work for all URLs
+
+#### 🚀 Universal Download Features (dl/dlx)
+- **Download ANY File**: PDFs, ISOs, installers, media files, archives, scripts from ANY URL
+- **Like curl/wget**: But with progress bars, better UX, and interactive prompts
+- **Real-World Examples**:
+  - `ghux dl https://omarchy.org/install`
+  - `ghux dl https://hostnezt.com/cssfiles/general/the-psychology-of-money.pdf`
+  - `ghux dl https://iso.omarchy.org/omarchy-3.1.5.iso`
+  - `ghux dl https://releases.ubuntu.com/22.04/ubuntu.iso`
+  - `ghux dl https://github.com/user/repo/blob/main/file.md`
+- **Progress Tracking**: Real-time download progress with speed indicator
+- **Custom Headers**: Add authentication headers, API keys, custom user agents
+- **Batch Download**: Download multiple URLs or from file lists
+- **Safe Downloads**: Overwrite protection, file info preview
+- **Auto Filename**: Automatically extracts filename from URL or headers
+
+#### 📥 Git Repository Features (when Git URL detected)
 - **Download Single File**: Download any file from a repository with simple commands
 - **Multiple URL Formats**: Support for blob, raw, and short URL formats
 - **Custom Output**: Rename files on download with `-o` or `--output`
@@ -48,10 +74,14 @@ Added comprehensive file download capabilities directly from GitHub, GitLab, and
 ### 🔧 New Commands
 
 ```bash
-# Single file download
-ghux dl <url>                           # Download file
+# Universal download (ONE COMMAND FOR EVERYTHING!)
+ghux dl <url>                           # Download from ANY URL (auto-detects Git or regular)
+ghux dl <url> -o filename               # Custom filename
+ghux dl <url> -d ~/Downloads/           # Custom directory
+ghux dl -f urls.txt                     # Batch download from file list
 ghux get <url>                          # Alias for dl
 ghux fetch-file <url>                   # Alias for dl
+ghux dlx <url>                          # Alternative (works identically to dl)
 
 # Download with options
 ghux dl <url> -o custom.txt             # Custom filename
@@ -80,6 +110,7 @@ ghux dl-release <repo> --asset binary   # Filter by name
 
 ### 📋 Download Options
 
+#### Universal Options (work for ALL URLs - dl/dlx/get)
 - `-o, --output <name>` - Custom output filename
 - `-O` - Keep original filename
 - `-d, --dir <path>` - Output directory
@@ -96,27 +127,49 @@ ghux dl-release <repo> --asset binary   # Filter by name
 - `--depth <n>` - Maximum directory depth (default: 10)
 - `--asset <name>` - Filter release assets by name
 - `--version <tag>` - Specific release version
+- `-A, --user-agent <ua>` - Custom user agent string (all URLs)
+- `-H, --header <header>` - Add custom HTTP header (all URLs)
+- `--no-redirect` - Don't follow redirects (all URLs)
+
+**Note**: Git-specific options (branch, pattern, tag, commit) are automatically ignored for non-Git URLs.
 
 ### 🛠️ Technical Changes
 
 - **New Modules**:
+  - `src/universalDownload.ts` - Universal downloader for any URL
   - `src/urlParser.ts` - URL parsing for GitHub, GitLab, Bitbucket
-  - `src/download.ts` - Download flows and logic
+  - `src/download.ts` - Smart download with auto-detection (unified dl/dlx)
   - `src/utils/downloader.ts` - Download utilities with progress tracking
+- **Smart Auto-Detection**: Automatically detects Git repository URLs vs regular URLs
+- **Unified Command**: `ghux dl` handles both Git repos and any URL seamlessly
 - **Enhanced URL Support**: Smart parsing of various Git hosting URL formats
 - **API Integration**: Uses GitHub API for directory listings and release info
 - **Retry Logic**: Automatic retry with exponential backoff for failed downloads
 - **File System Operations**: Safe file handling with overwrite protection
 - **Concurrent Downloads**: Promise.all for parallel file downloads
+- **Fallback System**: Git parsing failures automatically fallback to universal download
 
 ### 📚 Documentation
 
-- **Updated Help**: Complete download command documentation
-- **Usage Examples**: Real-world download scenarios
+- **DLX_UNIVERSAL_DOWNLOAD.md**: Complete guide for universal downloads (dlx)
+- **DOWNLOAD_QUICK_START.md**: Quick start guide for dl/dlx commands
+- **DOWNLOAD_FEATURE.md**: Advanced Git repository features
+- **Updated Help**: Complete download command documentation with auto-detection
+- **Usage Examples**: Real-world download scenarios for all URL types
 - **URL Format Guide**: Supported URL formats for all platforms
 
 ### 🎯 Use Cases
 
+**Universal Download (dl/dlx) - Works with ANY URL:**
+- Download Linux ISOs (Ubuntu, Arch, Fedora, etc.)
+- Download PDF documents and books
+- Download installers and setup files
+- Download media files (images, videos, audio)
+- Download archives (zip, tar.gz, 7z)
+- Download scripts and executables
+- Download any file from any website
+
+**Git Repository Download (dl with auto-detection):**
 - Download configuration files from repositories
 - Fetch documentation without cloning full repo
 - Download build artifacts from releases

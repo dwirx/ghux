@@ -136,7 +136,8 @@ sudo mv ghux /usr/local/bin/
 - 🔐 **Dual Authentication** - Support for both SSH keys and Personal Access Tokens
 - 📁 **Per-Repository Configuration** - Different accounts for different repositories
 - 📦 **Git Clone Integration** - Clone repositories directly with account selection
-- 📥 **File Download** - Download files and directories from repositories without cloning (NEW in v1.0.5)
+- 🚀 **Universal Download (dl)** - Download ANY file from ANY URL - Git repos OR regular URLs (NEW in v1.0.6)
+- 📥 **Smart Auto-Detection** - Automatically detects Git repositories or regular URLs (NEW in v1.0.6)
 - ⚡ **Zero Dependencies** - Single executable file, no runtime required
 - 🎯 **Interactive Interface** - Intuitive prompts and visual feedback
 - 🔑 **SSH Key Management** - Generate, import, and manage SSH keys
@@ -147,36 +148,85 @@ sudo mv ghux /usr/local/bin/
 - Generate SSH key dan Import SSH private key (auto chmod, auto `.pub`, auto alias/penamaan berdasarkan username).
 - Test koneksi: uji SSH alias dan/atau token.
 
-### 📥 Download Features (v1.0.5)
+### 🚀 Universal Download (dl) - NEW in v1.0.6
 
-- **Single File Download** - Download any file from GitHub, GitLab, or Bitbucket
-- **Multiple Files** - Download multiple files at once or from a list
-- **Directory Download** - Download entire directories with structure preservation
-- **Pattern Matching** - Download files matching glob patterns (e.g., `*.md`, `src/**/*.ts`)
-- **Release Downloads** - Download assets from GitHub releases
-- **Branch/Tag/Commit** - Download from specific versions
-- **Smart URL Parsing** - Supports various URL formats and platforms
-- **Progress Tracking** - Visual progress bars and file information
+**One command for everything!** Download **ANY** file from **ANY** URL - like `curl` and `wget`, but better!
 
-**Quick Examples:**
+#### Auto-Detection Magic ✨
+- **Git Repositories** - Automatically detects GitHub, GitLab, Bitbucket URLs
+- **Regular URLs** - Handles PDFs, ISOs, installers, media files, archives, scripts
+- **Smart Parsing** - No need to think, just paste the URL!
+
+#### All Features in One Command
+- **Download Anything** - PDFs, ISOs, installers, media, archives, Git files
+- **Progress Tracking** - Real-time download progress with speed indicator
+- **Safe Downloads** - Overwrite protection, file info preview
+- **Batch Downloads** - Multiple URLs or from file lists
+- **Pattern Matching** - Download files matching glob patterns (Git repos only)
+- **Branch/Tag/Commit** - Download from specific versions (Git repos only)
+- **Custom Headers** - Add authentication, API keys, custom user agents
+- **Directory Download** - Download entire directories from Git repos
+
+#### Quick Examples
+
+**Download from any URL:**
 ```bash
-# Download a single file
+# Download a PDF
+ghux dl https://example.com/document.pdf
+
+# Download Linux ISO
+ghux dl https://releases.ubuntu.com/22.04/ubuntu.iso
+
+# Download installer
+ghux dl https://omarchy.org/install -o install.sh
+
+# Download with custom name and directory
+ghux dl https://example.com/file.pdf -o my-document.pdf -d ~/Downloads/
+```
+
+**Download from Git repositories:**
+```bash
+# Download single file from GitHub
 ghux dl https://github.com/user/repo/blob/main/README.md
 
-# Download with custom name
-ghux dl <url> -o custom-name.md
-
-# Download entire directory
-ghux dl-dir https://github.com/user/repo/tree/main/src
+# Download from different branch
+ghux dl github.com/user/repo/file.md --branch develop
 
 # Download all markdown files
 ghux dl github.com/user/repo --pattern "*.md"
+
+# Download entire directory
+ghux dl-dir https://github.com/user/repo/tree/main/src
 
 # Download latest release
 ghux dl-release github.com/user/repo
 ```
 
-📖 **See [DOWNLOAD_FEATURE.md](DOWNLOAD_FEATURE.md) for complete download documentation**
+**Advanced usage:**
+```bash
+# Download with authentication
+ghux dl https://api.example.com/file.pdf -H "Authorization: Bearer TOKEN"
+
+# Download multiple files
+ghux dl url1 url2 url3
+
+# Download from file list
+ghux dl -f urls.txt -d ~/Downloads/
+
+# Preview before download
+ghux dl https://example.com/large-file.iso --info
+```
+
+#### Alternative Command
+```bash
+# ghux dlx is an alias for explicit universal download
+ghux dlx <url>  # Same as 'ghux dl', works identically
+```
+
+📖 **Documentation:**
+- [DOWNLOAD_QUICK_START.md](DOWNLOAD_QUICK_START.md) - Quick reference guide
+- [DLX_UNIVERSAL_DOWNLOAD.md](DLX_UNIVERSAL_DOWNLOAD.md) - Complete universal download guide
+- [DOWNLOAD_FEATURE.md](DOWNLOAD_FEATURE.md) - Advanced Git repository features
 
 > 📋 **Update Notifications**: GhUx automatically checks for updates once per day and shows a notification when a new version is available. You can also manually check for updates from the main menu. See [UPDATE_CHECKER.md](UPDATE_CHECKER.md) for details.
 

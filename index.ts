@@ -8,7 +8,84 @@ const args = process.argv.slice(2);
 if (args.length > 0) {
     const command = args[0];
 
-    // Download commands
+    // Universal download command (dlx) - download anything from any URL
+    if (command === "dlx") {
+        const {
+            downloadFromUrl,
+            downloadMultipleUrls,
+            downloadFromFileList: downloadUniversalFromFileList,
+        } = await import("./src/universalDownload");
+
+        // Parse options
+        const options: any = {};
+        let urls: string[] = [];
+
+        for (let i = 1; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg) continue;
+
+            if (arg === "-o" || arg === "--output") {
+                options.output = args[++i];
+            } else if (arg === "-d" || arg === "--dir") {
+                options.outputDir = args[++i];
+            } else if (arg === "-f" || arg === "--file-list") {
+                const fileList = args[++i];
+                if (fileList) {
+                    await downloadUniversalFromFileList(fileList, options);
+                    process.exit(0);
+                }
+            } else if (arg === "--info") {
+                options.showInfo = true;
+            } else if (arg === "--progress") {
+                options.showProgress = true;
+            } else if (arg === "--overwrite") {
+                options.overwrite = true;
+            } else if (arg === "--no-redirect") {
+                options.followRedirects = false;
+            } else if (arg === "--user-agent" || arg === "-A") {
+                options.userAgent = args[++i];
+            } else if (arg === "--header" || arg === "-H") {
+                const header = args[++i];
+                if (header) {
+                    const [key, ...valueParts] = header.split(":");
+                    if (key) {
+                        const value = valueParts.join(":").trim();
+                        if (!options.headers) options.headers = {};
+                        options.headers[key.trim()] = value;
+                    }
+                }
+            } else if (!arg.startsWith("-")) {
+                urls.push(arg);
+            }
+        }
+
+        if (urls.length === 0) {
+            console.error("Error: No URL specified");
+            console.log("Usage: ghux dlx <url> [options]");
+            console.log("");
+            console.log("Examples:");
+            console.log("  ghux dlx https://example.com/file.pdf");
+            console.log(
+                "  ghux dlx https://example.com/installer.sh -o install.sh",
+            );
+            console.log(
+                "  ghux dlx https://releases.ubuntu.com/22.04/ubuntu.iso -d ~/Downloads/",
+            );
+            console.log("  ghux dlx url1 url2 url3  # Multiple downloads");
+            process.exit(1);
+        }
+
+        // Download files
+        if (urls.length === 1 && urls[0]) {
+            await downloadFromUrl(urls[0], options);
+        } else {
+            await downloadMultipleUrls(urls, options);
+        }
+
+        process.exit(0);
+    }
+
+    // Universal download commands (dl, get, fetch-file) - now handles BOTH git repos and any URL!
     if (command === "dl" || command === "get" || command === "fetch-file") {
         const {
             downloadSingleFile,
@@ -54,6 +131,20 @@ if (args.length > 0) {
                 options.showProgress = true;
             } else if (arg === "--overwrite") {
                 options.overwrite = true;
+            } else if (arg === "--no-redirect") {
+                options.followRedirects = false;
+            } else if (arg === "--user-agent" || arg === "-A") {
+                options.userAgent = args[++i];
+            } else if (arg === "--header" || arg === "-H") {
+                const header = args[++i];
+                if (header) {
+                    const [key, ...valueParts] = header.split(":");
+                    if (key) {
+                        const value = valueParts.join(":").trim();
+                        if (!options.headers) options.headers = {};
+                        options.headers[key.trim()] = value;
+                    }
+                }
             } else if (!arg.startsWith("-")) {
                 urls.push(arg);
             }
@@ -62,10 +153,19 @@ if (args.length > 0) {
         if (urls.length === 0) {
             console.error("Error: No URL specified");
             console.log("Usage: ghux dl <url> [options]");
+            console.log("");
+            console.log("Download from Git repositories OR any URL:");
+            console.log(
+                "  ghux dl https://github.com/user/repo/blob/main/file.md",
+            );
+            console.log("  ghux dl https://example.com/document.pdf");
+            console.log(
+                "  ghux dl https://releases.ubuntu.com/22.04/ubuntu.iso",
+            );
             process.exit(1);
         }
 
-        // Download files
+        // Download files (auto-detects git repo or regular URL)
         if (urls.length === 1 && urls[0]) {
             await downloadSingleFile(urls[0], options);
         } else {

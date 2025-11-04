@@ -1,6 +1,6 @@
 /**
  * Download Module
- * Handles file downloads from Git hosting platforms
+ * Handles file downloads from Git hosting platforms AND any URL
  */
 
 import * as fs from "fs";
@@ -32,6 +32,7 @@ import {
     showBox,
     showSection,
 } from "./utils/ui";
+import { downloadFromUrl as universalDownloadFromUrl } from "./universalDownload";
 
 export type DownloadCommandOptions = {
     output?: string;
@@ -44,22 +45,69 @@ export type DownloadCommandOptions = {
     commit?: string;
     depth?: number;
     showInfo?: boolean;
+    showProgress?: boolean;
     overwrite?: boolean;
     fileList?: string;
+    followRedirects?: boolean;
+    userAgent?: string;
+    headers?: Record<string, string>;
 };
 
 /**
- * Main download flow - single file
+ * Check if URL is a git repository URL
+ */
+function isGitRepositoryUrl(url: string): boolean {
+    const lowerUrl = url.toLowerCase();
+    return (
+        lowerUrl.includes("github.com") ||
+        lowerUrl.includes("gitlab.com") ||
+        lowerUrl.includes("gitlab.") ||
+        lowerUrl.includes("bitbucket.org") ||
+        lowerUrl.includes("bitbucket.") ||
+        lowerUrl.includes("/blob/") ||
+        lowerUrl.includes("/tree/") ||
+        lowerUrl.includes("/-/blob/") ||
+        lowerUrl.includes("/-/tree/") ||
+        lowerUrl.includes("/src/")
+    );
+}
+
+/**
+ * Main download flow - single file (UNIVERSAL - handles both git repos and any URL)
  */
 export async function downloadSingleFile(
     url: string,
     options: DownloadCommandOptions = {},
 ): Promise<void> {
     try {
-        // Parse URL
+        // Try to detect if this is a git repository URL
+        const isGitUrl = isGitRepositoryUrl(url);
+
+        // If not a git URL or parsing fails, use universal downloader
+        if (!isGitUrl) {
+            await universalDownloadFromUrl(url, {
+                output: options.output,
+                outputDir: options.outputDir,
+                showProgress: options.showProgress !== false,
+                overwrite: options.overwrite,
+                showInfo: options.showInfo,
+                followRedirects: true,
+            });
+            return;
+        }
+
+        // Parse as git URL
         const parsed = parseGitUrl(url);
         if (!parsed) {
-            showError(`Invalid URL format: ${url}`);
+            // If git URL parsing fails, fallback to universal download
+            await universalDownloadFromUrl(url, {
+                output: options.output,
+                outputDir: options.outputDir,
+                showProgress: options.showProgress !== false,
+                overwrite: options.overwrite,
+                showInfo: options.showInfo,
+                followRedirects: true,
+            });
             return;
         }
 
@@ -132,7 +180,7 @@ export async function downloadSingleFile(
 }
 
 /**
- * Download multiple files from a list
+ * Download multiple files from a list (UNIVERSAL - handles both git repos and any URL)
  */
 export async function downloadMultipleFiles(
     urls: string[],
@@ -141,24 +189,35 @@ export async function downloadMultipleFiles(
     try {
         showSection(`Downloading ${urls.length} Files`);
 
-        const files: Array<{ url: string; filename: string }> = [];
+        const files: Array<{ url: string; filename: string; isGit: boolean }> =
+            [];
 
         for (const url of urls) {
-            const parsed = parseGitUrl(url);
-            if (!parsed) {
-                showWarning(`Skipping invalid URL: ${url}`);
-                continue;
+            const isGitUrl = isGitRepositoryUrl(url);
+
+            if (isGitUrl) {
+                const parsed = parseGitUrl(url);
+                if (!parsed) {
+                    // Treat as universal URL
+                    const filename = extractFilenameFromAnyUrl(url);
+                    files.push({ url, filename, isGit: false });
+                    continue;
+                }
+
+                // Override branch if specified
+                if (options.branch) parsed.branch = options.branch;
+                if (options.tag) parsed.branch = options.tag;
+                if (options.commit) parsed.branch = options.commit;
+
+                const rawUrl = toRawUrl(parsed);
+                const filename = getFilename(parsed);
+
+                files.push({ url: rawUrl, filename, isGit: true });
+            } else {
+                // Universal URL
+                const filename = extractFilenameFromAnyUrl(url);
+                files.push({ url, filename, isGit: false });
             }
-
-            // Override branch if specified
-            if (options.branch) parsed.branch = options.branch;
-            if (options.tag) parsed.branch = options.tag;
-            if (options.commit) parsed.branch = options.commit;
-
-            const rawUrl = toRawUrl(parsed);
-            const filename = getFilename(parsed);
-
-            files.push({ url: rawUrl, filename });
         }
 
         if (files.length === 0) {
@@ -166,12 +225,15 @@ export async function downloadMultipleFiles(
             return;
         }
 
-        const results = await downloadMultiple(files, {
-            outputDir: options.outputDir,
-            preservePath: options.preservePath,
-            showProgress: true,
-            overwrite: options.overwrite,
-        });
+        const results = await downloadMultiple(
+            files.map((f) => ({ url: f.url, filename: f.filename })),
+            {
+                outputDir: options.outputDir,
+                preservePath: options.preservePath,
+                showProgress: true,
+                overwrite: options.overwrite,
+            },
+        );
 
         // Show summary
         const successful = results.filter((r) => r.success).length;
@@ -185,6 +247,22 @@ export async function downloadMultipleFiles(
         }
     } catch (error: any) {
         showError(`Download error: ${error?.message || String(error)}`);
+    }
+}
+
+/**
+ * Extract filename from any URL
+ */
+function extractFilenameFromAnyUrl(url: string): string {
+    try {
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        const segments = pathname.split("/").filter((s) => s);
+        let filename = segments[segments.length - 1] || "download";
+        filename = filename.split("?")[0] || "download";
+        return decodeURIComponent(filename);
+    } catch {
+        return "download";
     }
 }
 

@@ -30,7 +30,7 @@ import {
 import type { Account } from "./types";
 
 // Version constant - synced by CI/CD workflow
-const PACKAGE_VERSION = "1.0.5";
+const PACKAGE_VERSION = "1.0.6";
 
 function showVersion() {
     console.log(`ghux v${PACKAGE_VERSION}`);
@@ -60,14 +60,24 @@ function showHelp() {
     );
     console.log("                            Supports SSH and HTTPS URLs");
     console.log("");
-    console.log("Download Files:");
+    console.log("Universal Download (RECOMMENDED):");
+    console.log("  ghux dl <url> [options]   Download ANY file from ANY URL");
     console.log(
-        "  ghux dl <url> [options]   Download single file from repository",
+        "                            Auto-detects: Git repos OR regular URLs",
+    );
+    console.log(
+        "                            Works with: PDFs, ISOs, installers, etc.",
     );
     console.log("  ghux get <url>            Alias for 'dl' command");
     console.log("  ghux fetch-file <url>     Alias for 'dl' command");
     console.log("");
-    console.log("Download Options:");
+    console.log("Universal Download (Alternative):");
+    console.log("  ghux dlx <url> [options]  Explicit universal downloader");
+    console.log(
+        "                            Same as 'dl' but explicit for any URL",
+    );
+    console.log("");
+    console.log("Universal Download Options (dl/dlx/get):");
     console.log("  -o, --output <name>       Custom output filename");
     console.log("  -O                        Keep original filename");
     console.log("  -d, --dir <path>          Output directory");
@@ -77,12 +87,15 @@ function showHelp() {
     console.log("  -f, --file-list <path>    Download from file list");
     console.log("  --pattern <glob>          Download files matching pattern");
     console.log("  --exclude <glob>          Exclude files matching pattern");
-    console.log("  -b, --branch <name>       Specify branch");
-    console.log("  -t, --tag <name>          Specify tag");
-    console.log("  -c, --commit <hash>       Specify commit");
+    console.log("  -b, --branch <name>       Specify branch (Git repos only)");
+    console.log("  -t, --tag <name>          Specify tag (Git repos only)");
+    console.log("  -c, --commit <hash>       Specify commit (Git repos only)");
     console.log("  --info                    Show file info before download");
     console.log("  --progress                Show progress bar");
     console.log("  --overwrite               Overwrite existing files");
+    console.log("  -A, --user-agent <ua>     Custom user agent string");
+    console.log("  -H, --header <header>     Add custom HTTP header");
+    console.log("  --no-redirect             Don't follow redirects");
     console.log("");
     console.log("Download Directory:");
     console.log("  ghux dl-dir <url>         Download entire directory");
@@ -143,7 +156,16 @@ function showHelp() {
         "  ghux https://github.com/user/repo.git myproject     # Clone to 'myproject' dir",
     );
     console.log(
-        "  ghux dl https://github.com/user/repo/blob/main/README.md  # Download file",
+        "  ghux dl https://example.com/file.pdf                # Download any file",
+    );
+    console.log(
+        "  ghux dl https://releases.ubuntu.com/22.04/ubuntu.iso   # Download ISO",
+    );
+    console.log(
+        "  ghux dl https://github.com/user/repo/blob/main/README.md  # Download from Git repo",
+    );
+    console.log(
+        "  ghux dl https://omarchy.org/install -o install.sh   # Download script",
     );
     console.log(
         "  ghux dl <url> -o custom.txt                         # Download with custom name",
